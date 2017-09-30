@@ -1,0 +1,35 @@
+<div class="row">
+  <div class="panel panel-primary">
+    <div class="panel-heading">Eye ID - Unlock With Your Eye</div>
+    <div class="panel-body">
+      
+      <div class="row">
+        <div id="pin">
+          <div class="dots">
+            <div class="dot" *ngFor="let p of inputStates"
+                 [ngClass]="{'active': p, 'correct': status == 'correct', 'wrong': status == 'wrong'}"></div>
+          </div>
+        </div>
+      
+      </div>
+      <div class="row">
+        
+        <div class="panel panel-default col-sm-6">
+          <div class="panel-heading">Move Gesture To Unlock</div>
+          <div class="panel-body">
+            <button class="btn btn-primary" (click)="enter()">{{requesting ? 'Requesting' : 'Request'}}</button>
+          </div>
+        </div>
+        
+        <div class="panel panel-default col-sm-6">
+          <div class="panel-heading">Information</div>
+          <div class="panel-body">
+            {{isUnlocking ? 'Move gesture to unlock' : 'blink to start unlock'}}
+            <br>
+            <span *ngFor="let l of passcode">{{l}} &nbsp;&nbsp;</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

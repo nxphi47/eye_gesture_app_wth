@@ -1,0 +1,191 @@
+/*$background-color: #375ffa;*/
+/*#212121: #212121;*/
+/*2em: .8em;*/
+/*$number-size: 2.5em;*/
+
+/*body {*/
+	/*height: 100vh;*/
+	/*background: $background-color;*/
+	/*display: flex;*/
+	/*align-items: center;*/
+	/*justify-content: center;*/
+	/*font-family: Open Sans;*/
+	/*&.wrong {*/
+		/*animation: bg-red 1s ease-in;*/
+	/*}*/
+	/*&.correct {*/
+		/*animation: bg-green 1s ease-in;*/
+	/*}*/
+/*}*/
+
+#inspiration {
+	position: fixed;
+	right: 1em;
+	bottom: 1em;
+	/*& a {*/
+		/*display: inline-block;*/
+		/*float: left;*/
+		/*text-decoration: none;*/
+		/*font-weight: bold;*/
+		/*color: white;*/
+		/*transition: all 1s ease;*/
+		/*&:hover {*/
+			/*color: #212121;*/
+		/*}*/
+	/*}*/
+	/*& p {*/
+		/*margin: 0;*/
+		/*padding-left: .4em;*/
+		/*display: inline-block;*/
+		/*float: right;*/
+		/*color: rgba(255,255,255,.6);*/
+	/*}*/
+}
+#pin {
+	background: #212121;
+	width: 20em; min-width: 320px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
+	padding: 1em;
+	border-radius: .3em;
+	box-shadow: 4px 4px 8px rgba(0,0,0,.3);
+	margin: auto;
+	color: rgba(255,255,255,.2);
+}
+.dots {
+	width: 50%;
+	display: flex;
+	justify-content: space-around;
+	padding: 1em;
+	padding-top: 3em;
+}
+.dot {
+	position: relative;
+	background: rgba(255,255,255,.2);
+	border-radius: 2em;
+	width: 2em;
+	height: 2em;
+	transform: scale3d(.7,.7,.7);
+	/*&.active {*/
+		/*animation: growDot .5s ease;*/
+		/*animation-fill-mode: forwards;*/
+	/*}*/
+	/*&.wrong {*/
+		/*animation: wrong .9s ease;*/
+	/*}*/
+	/*&.correct {*/
+		/*animation: correct .9s ease;*/
+	/*}*/
+}
+.dot.active {
+  animation: growDot .5s ease;
+		animation-fill-mode: forwards;
+}
+.dot.wrong {
+  animation: wrong .5s ease;
+}
+.dot.correct {
+  animation: correct .5s ease;
+}
+
+#pin p {
+	font-size: .8em;
+}
+.numbers {
+	display: flex;
+	flex-flow: row wrap;
+	align-items: center;
+	justify-content: space-around;
+	align-content: flex-end;
+	margin: 2em 0;
+}
+/*.number {*/
+	/*position: relative;*/
+	/*width: $number-size;*/
+	/*height: $number-size;*/
+	/*margin: $number-size/5;*/
+	/*border-radius: $number-size;*/
+	/*border: 2px solid rgba(255,255,255, 0);*/
+	/*text-align: center;*/
+	/*line-height: $number-size;*/
+	/*font-weight: 400;*/
+	/*font-size: 1.8em;*/
+	/*cursor: pointer;*/
+	/*user-select: none;*/
+	/*transition: all .5s ease;*/
+	/*&:hover {*/
+		/*color: rgba(255,255,255, .5);*/
+		/*&:before {*/
+		/*border: 2px solid rgba(255,255,255, .5);*/
+		/*}*/
+	/*}*/
+	/*&:before {*/
+		/*content: "";*/
+		/*position: absolute;*/
+		/*left: -2px;*/
+		/*width: $number-size;*/
+		/*height: $number-size;*/
+		/*border: 2px solid rgba(255,255,255, .1);*/
+		/*border-radius: $number-size;*/
+		/*transition: all .5s ease;*/
+	/*}*/
+	/*&.grow:before {*/
+		/*animation: grow .6s ease;*/
+	/*}*/
+/*}*/
+
+@keyframes growDot {
+	100% {
+		background: white;
+		transform: scale3d(.9,.9,.9);
+	}
+}
+
+@keyframes grow {
+	50% {
+		transform: scale3d(1.5,1.5,1.5);
+	}
+	100% {
+		transform: scale3d(1,1,1);
+	}
+}
+@keyframes wrong {
+	20% {
+		background: crimson;
+	}
+	40% {
+		transform: translate(-15px, 0);
+	}
+	60% {
+		transform: translate(10px, 0);
+	}
+	80% {
+		transform: translate(-5px, 0);
+	}
+}
+@keyframes correct {
+	20% {
+		background: limegreen;
+	}
+	40% {
+		transform: translate(0, -15px);
+	}
+	60% {
+		transform: translate(0, 10px);
+	}
+	80% {
+		transform: translate(0, -5px);
+	}
+}
+@keyframes bg-red {
+	50% {
+		background: crimson;
+	}
+}
+@keyframes bg-green {
+	50% {
+		background: limegreen;
+	}
+}

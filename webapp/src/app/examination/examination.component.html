@@ -1,0 +1,61 @@
+<div class="row">
+  <div class="panel panel-primary">
+    <div class="panel-heading">Multiple Choices Examination for disabled student</div>
+    <div class="panel-body">
+      <div class="row">
+        <div class="col-sm-12">
+          <button class="btn" [ngClass]="{'btn-primary': !examining, 'btn-success': examining}"
+                  (click)="startExam()"
+          >{{!examining ? 'Start Quiz' : 'Quiz Started'}}</button>
+          
+        </div>
+        
+      </div>
+      <!--<div class="row" *ngIf="examining">-->
+      <div class="row" >
+        <div class="col-sm-10">
+          <div class="panel panel-default">
+            <div class="panel-heading">Questions List</div>
+            <div class="panel-body">
+              <div class="panel"
+                   [ngClass]="{'panel-default': (q != focusQuestion), 'panel-primary': (q == focusQuestion)}"
+                   *ngFor="let q of questions; let i = index" [attr.data-index]="i"
+              >
+                <div class="panel-heading">Question {{ i + 1}}</div>
+                <div class="panel-body">
+                  <div class="question-content">
+                    <article>{{q.content}}</article>
+                  </div>
+                  <div class="question-answer">
+                    <label class="radio-inline choice" *ngFor="let c of q.choices; let j = index" [attr.data-index]="j">
+                      <input disabled type="radio" name="{{mappingLabels[j]}}" [value]="j" [(ngModel)]="q.selectedChoice">
+                      (<span class="choice-label">{{mappingLabels[j]}}</span>)
+                      {{c}}
+                    </label>
+                  </div>
+                  
+                </div>
+              </div>
+            </div>
+            
+          </div>
+          
+        </div>
+        <div class="col-sm-2">
+          <div class="panel panel-default">
+            <div class="panel-heading">Information</div>
+            <div class="panel-body">
+              Time: {{minutesTime}}
+              <br>
+              Eye: {{currentLabel}}
+              <br>
+              Headset: {{headsetStatus}}
+              <br>
+              <span *ngIf="result != null">Result: {{result}} / {{questions.length}}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
