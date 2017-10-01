@@ -32,10 +32,6 @@ export class EyeIdComponent implements OnInit {
   ngOnInit() {
   }
   
-  // passcodeTransform(gestureArray: string[]): number[] {
-  //   return gestureArray.map(v => this.labelSet.indexOf(v)).join("");
-  // }
-  
   validate(gestureArray: string[]): boolean {
     if (gestureArray.length != this.passcode.length) return false;
     for (let i = 0; i < gestureArray.length && i < this.passcode.length; i++) {
@@ -161,14 +157,6 @@ export class EyeIdComponent implements OnInit {
   
   render() {
   
-  }
-  
-  init() {
-    var input = '';
-    
-    
-    var dots = document.getElementsByClassName('dot'),
-      numbers = document.getElementsByClassName('number');
   }
   
 }

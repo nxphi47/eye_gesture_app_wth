@@ -141,12 +141,14 @@ export class ExaminationComponent implements OnInit {
     this.examining = false;
     this.result= null;
     this.headsetStatus = 'off';
+    this.focusChoice = null;
+    this.focusQuestion = null;
+    this.time = 0;
   }
   
   validateLabel(label) {
     return (this.mappingLabels.includes(label) || label == 'double_blink');
   }
   
-  validates
 
 }

@@ -5,6 +5,9 @@
       
       <div class="row">
         <div id="pin">
+          <h3 class="pin-title">
+            {{isUnlocking ? 'Move Your Eye!' : 'Blink to unlock'}}
+          </h3>
           <div class="dots">
             <div class="dot" *ngFor="let p of inputStates"
                  [ngClass]="{'active': p, 'correct': status == 'correct', 'wrong': status == 'wrong'}"></div>
@@ -12,23 +15,42 @@
         </div>
       
       </div>
+      <br>
       <div class="row">
         
-        <div class="panel panel-default col-sm-6">
-          <div class="panel-heading">Move Gesture To Unlock</div>
-          <div class="panel-body">
-            <button class="btn btn-primary" (click)="enter()">{{requesting ? 'Requesting' : 'Request'}}</button>
+        <div class="col-sm-6">
+          
+          <div class="panel panel-default">
+            <div class="panel-heading">Move Gesture To Unlock</div>
+            <div class="panel-body">
+              <div class="row" style="margin-left: 5px">
+                
+                <button class="btn btn-primary" (click)="enter()">
+                  {{requesting ? 'De-activate Eye ID' : 'Activate Eye ID'}}
+                </button>
+              </div>
+              <div class="row" style="margin-top: 10px; margin-left: 5px">
+                Example: <span *ngFor="let l of passcode" class="label label-primary passcode">{{l}}</span>
+              </div>
+            </div>
           </div>
         </div>
         
-        <div class="panel panel-default col-sm-6">
-          <div class="panel-heading">Information</div>
-          <div class="panel-body">
-            {{isUnlocking ? 'Move gesture to unlock' : 'blink to start unlock'}}
-            <br>
-            <span *ngFor="let l of passcode">{{l}} &nbsp;&nbsp;</span>
+        <div class="col-sm-6">
+          <div class="panel panel-default">
+            <div class="panel-heading">Information</div>
+            <div class="panel-body">
+              <span class="unlocking label" [ngClass]="{'label-success': isUnlocking, 'label-warning': !isUnlocking}">
+                {{isUnlocking ? 'Move Your Eye!' : 'Blink to unlock'}}
+              </span>
+              <br>
+              Current:
+              <span *ngFor="let l of inputs" class="label label-success passcode">{{l}}</span>
+            </div>
           </div>
+        
         </div>
+      
       </div>
     </div>
   </div>

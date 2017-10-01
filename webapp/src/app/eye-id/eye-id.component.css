@@ -18,6 +18,24 @@
 	/*}*/
 /*}*/
 
+.pin-title {
+  font-family: bold, monospace ;
+  color: #ff767b;
+}
+
+span.passcode {
+  /*color: #ff5064;*/
+  font-size: larger;
+  margin-right: 5px;
+  text-transform: capitalize;
+}
+span.unlocking {
+  display: block;
+  font-size: larger;
+  /*margin-right: 5px;*/
+  width: 100%;
+}
+
 #inspiration {
 	position: fixed;
 	right: 1em;

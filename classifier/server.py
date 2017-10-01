@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import glob
 import os
 import random
@@ -39,7 +40,7 @@ INPUT_DIM = 64
 EPOCH = 10
 BATCH = 32
 SPLIT = 0.2
-
+FRAMERATE = 15
 model = None
 query = None
 result = None
@@ -165,10 +166,11 @@ def load_cnn_model(model_name):
 
 	print "open filename: {}".format(model_name)
 	model = load_model('{}{}.h5'.format(model_dir, model_name))
+	print "Finish load model"
 
 	camera_config = {
 		'duration': 15,
-		'framerate': config.FRAMERATE
+		'framerate': FRAMERATE
 		# 'framerate': 30
 	}
 

@@ -13,7 +13,7 @@
       </div>
       <!--<div class="row" *ngIf="examining">-->
       <div class="row" >
-        <div class="col-sm-10">
+        <div class="col-sm-9">
           <div class="panel panel-default">
             <div class="panel-heading">Questions List</div>
             <div class="panel-body">
@@ -41,17 +41,13 @@
           </div>
           
         </div>
-        <div class="col-sm-2">
+        <div class="col-sm-3">
           <div class="panel panel-default">
             <div class="panel-heading">Information</div>
             <div class="panel-body">
-              Time: {{minutesTime}}
-              <br>
-              Eye: {{currentLabel}}
-              <br>
-              Headset: {{headsetStatus}}
-              <br>
-              <span *ngIf="result != null">Result: {{result}} / {{questions.length}}</span>
+              <label class="info-label">Time: <span class="label label-primary">{{minutesTime}}</span></label>
+              <label class="info-label">Eye: <span class="label label-success">{{currentLabel}}</span></label>
+              <label class="info-label" *ngIf="result != null">Result: <span class="label label-primary">{{result}} / {{questions.length}}</span></label>
             </div>
           </div>
         </div>

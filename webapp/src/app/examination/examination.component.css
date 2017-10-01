@@ -1,3 +1,15 @@
 .choice {
   width: 30%;
 }
+
+.choice-label {
+  font-family: bold;
+  color: red;
+}
+
+.info-label {
+  font-family: bold;
+  display: block;
+  width: 100%;
+  font-size: x-large;
+}

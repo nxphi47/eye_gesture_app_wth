@@ -8,7 +8,7 @@ import {InferenceResponse, InferenceService} from "./services/inference.service"
 })
 export class AppComponent {
 	title = 'app';
-	app:string = 'home';
+	app: string = 'eyeid';
 	ipAddress: string = "192.168.43.165";
 	// headset 192.168.43.165
   // PI: .15
