@@ -144,6 +144,7 @@ export class ExaminationComponent implements OnInit {
     this.focusChoice = null;
     this.focusQuestion = null;
     this.time = 0;
+    this.questions.forEach(v => v.selectedChoice = null);
   }
   
   validateLabel(label) {
