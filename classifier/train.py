@@ -1,26 +1,22 @@
 #!/usr/bin/env python
-
-import tensorflow as tf
+from __future__ import print_function
+import os
+import shutil
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import numpy as np
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import train_test_split
-import random
 import pprint
-
 import argparse
 
-import keras
 from keras.models import Model, Sequential
-from keras.layers import Layer, InputLayer, Input, Activation, Conv2D, Dense, Dropout, \
+from keras.layers import Input, Activation, Conv2D, Dense, Dropout, \
 	LSTM, Bidirectional, TimeDistributed, MaxPooling2D, BatchNormalization, AveragePooling2D, Flatten
 # from keras.layers.merge import Concatenate, Add, Dot, Multiply
-from keras.callbacks import BaseLogger, ProgbarLogger, ReduceLROnPlateau, TensorBoard
+from keras.callbacks import ProgbarLogger, ReduceLROnPlateau, TensorBoard, TerminateOnNaN, CSVLogger
 
 import glob
-import os
-import numpy as np
 from PIL import Image
-from PIL import ImageOps
 
 LABEL_SET = ['left', 'right', 'up', 'down', 'center', 'double_blink']
 # DATASETS_SRC_DIR = './datasets/{dim}/'.format(dim=config.INPUT_DIM)
@@ -41,24 +37,22 @@ def denormalize_image(img):
 	return result.astype(np.uint8)
 
 
-def load_datasets():
+def load_dataset(base_dir):
 	globs = {}
 	for l in LABEL_SET:
 		# source_dir / dimension / labels / batches / images...
-		globs[l] = glob.glob('{src_dir}{label}/*/*.jpg'.format(src_dir=DATASETS_SRC_DIR, label=l))
+		globs[l] = glob.glob('{src_dir}/{label}/*/*.jpg'.format(src_dir=base_dir, label=l))
 
 	# datasets
 	X = []
 	y = []
 	y_raws = []
 	eye = np.eye(len(LABEL_SET))
-
 	for i, l in enumerate(LABEL_SET):
 		data = []
 		for j, img_url in enumerate(globs[l]):
 			img = Image.open(img_url)
-
-			imgArray = normalize_image(np.array(img))
+			img_array = normalize_image(np.array(img))
 			if j % SEQUENCE_LENGTH == 0 and j != 0:
 				# package into sequence
 				X.append(np.array(data))
@@ -66,7 +60,7 @@ def load_datasets():
 				y_raws.append(l)
 				data = []
 			# else:
-			data.append(imgArray)
+			data.append(img_array)
 
 	X = np.array(X)
 	y = np.array(y)
@@ -74,13 +68,14 @@ def load_datasets():
 
 
 # Convolutional blocks
-def add_conv_layer(model, filters, kernel_size, use_bias, activation='relu', pooling='max_pool', batch_norm=False, input_shape=False):
+def add_conv_layer(model, filters, kernel_size, use_bias, activation='relu', pooling='max_pool', batch_norm=False,
+				   input_shape=False):
 	if input_shape:
 		model.add(Conv2D(input_shape=input_shape, filters=filters, kernel_size=(kernel_size, kernel_size),
-				use_bias=use_bias))
+						 use_bias=use_bias))
 	else:
 		model.add(Conv2D(filters=filters, kernel_size=(kernel_size, kernel_size),
-				use_bias=use_bias))
+						 use_bias=use_bias))
 
 	if batch_norm:
 		# conv = BatchNormalization()(conv)
@@ -99,7 +94,8 @@ def add_conv_layer(model, filters, kernel_size, use_bias, activation='relu', poo
 
 	return model
 
-def CNN_block(input_shape):
+
+def CNN_block(input_shape, print_fn=print):
 	use_bias = False
 	batch_norm = False
 	pooling = 'max_pool'
@@ -107,7 +103,7 @@ def CNN_block(input_shape):
 	model = Sequential()
 
 	model = add_conv_layer(model, filters=8, kernel_size=4, use_bias=use_bias, pooling=pooling, batch_norm=batch_norm,
-					  input_shape=input_shape)
+						   input_shape=input_shape)
 
 	model = add_conv_layer(model, filters=16, kernel_size=3, use_bias=use_bias, pooling=pooling, batch_norm=batch_norm)
 
@@ -124,20 +120,20 @@ def CNN_block(input_shape):
 	# model = Model(outputs=fc)
 
 	# CNN model
-	print '-----------  CNN model ------------------'
-	model.summary()
-	print '----------- <CNN model> -----------------'
+	print_fn('-----------  CNN model ------------------')
+	model.summary(print_fn=print_fn)
+	print_fn('----------- <CNN model> -----------------')
 
 	return model
 
 
-def CNN_RNN_Sequential_model():
+def CNN_RNN_Sequential_model(print_f=print):
 	# inputs = Input(shape=(config.SEQUENCE_LENGTH, config.INPUT_DIM, config.INPUT_DIM, config.CHANNEL))
 	inputs = Input(shape=(SEQUENCE_LENGTH, INPUT_DIM, INPUT_DIM, 3))
 
-	cnn_input_shape = ( INPUT_DIM, INPUT_DIM, 3)
+	cnn_input_shape = (INPUT_DIM, INPUT_DIM, 3)
 
-	timedistributed = TimeDistributed(CNN_block(cnn_input_shape))(inputs)
+	timedistributed = TimeDistributed(CNN_block(cnn_input_shape, print_fn=print_f))(inputs)
 
 	lstm = Bidirectional(LSTM(units=128))(timedistributed)
 	out_layer = Dense(len(LABEL_SET), activation='softmax')(lstm)
@@ -145,71 +141,112 @@ def CNN_RNN_Sequential_model():
 	model = Model(inputs=inputs, outputs=out_layer)
 
 	# CNN model
-	print '-----------  CNN sequential model -----------------'
-	model.summary()
-	print '----------- <CNN sequential model> -----------------'
+	print_f('-----------  CNN sequential model -----------------')
+	model.summary(print_fn=print_f)
+	print_f('----------- <CNN sequential model> -----------------')
 
 	return model
 
-def after_train(model, X_train, X_test, y_train, y_test, label_set, model_name='cnn_'):
-	true_val = np.array(np.argmax(y_test, axis=1))
-	pred_val = np.argmax(model.predict(X_test), axis=1)
+
+def after_train(model, model_file, model_dir, train_config, label_set, model_name='cnn_', print_fn=print):
+	X, y, y_raws, label_set = load_dataset(train_config['test'])
+
+	true_val = np.array(np.argmax(y, axis=1))
+	pred_val = np.argmax(model.predict(X), axis=1)
 	report = classification_report(true_val, pred_val, target_names=label_set)
 	matrix = confusion_matrix(true_val, pred_val)
-	print report
-	print matrix
+	print_fn(report)
+	print_fn(matrix)
 
-	save_dir = 'models/'
+	# save_dir = 'models/'
 	# index = 0
 	# model_name = 'cnn_sequential_6label_{}'.format(index)
-	model.save(os.path.join(save_dir, "{}.h5".format(model_name)))
+	model.save(os.path.join(model_dir, "{}.h5".format(model_name)))
 	# save_tf(model, os.path.join(save_dir, "{}".format(model_name)))
 
-	print 'model save {}'.format(model_name)
+	print_fn('model save {}'.format(model_name))
 
 
-def train(train_config={}):
+def train(train_config):
 	epoch = train_config.get('epoch', 10)
 	batch_size = train_config.get('batch', 32)
 	split = train_config.get('split', 0.2)
+	model_name = train_config.get('model', 'noname')
 
-	model = CNN_RNN_Sequential_model()
-	model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy', 'mae'],)
+	train_dir = train_config['train']
+	test_dir = train_config['test']
+	model_dir = os.path.join("./models", "{}".format(model_name))
+	model_file = open(os.path.join(model_dir, "model_log.txt"), 'w')
 
-	X, y, y_raws, label_set = load_datasets()
+
+	def print_f(val):
+		model_file.write("{}\n".format(val))
+		print(val)
 
 
-	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state = 42)
+	model = CNN_RNN_Sequential_model(print_f)
+	model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy', 'mae'], )
+
+	# load training set
+	print ('Loading data')
+	X, y, y_raws, label_set = load_dataset(train_dir)
+
+	X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=split, random_state=42)
 
 	model.fit(X_train, y_train, epochs=epoch, batch_size=batch_size, verbose=1,
-			  validation_data=[X_test, y_test],
-			  callbacks=[ProgbarLogger(), ReduceLROnPlateau(),
-						 TensorBoard(log_dir='./tensorboard', histogram_freq=1, batch_size=100)])
+			  validation_data=[X_val, y_val],
+			  callbacks=[ProgbarLogger(),
+						 ReduceLROnPlateau(),
+						 TensorBoard(log_dir=model_dir, histogram_freq=1, batch_size=100),
+						 CSVLogger(filename=os.path.join(model_dir, "logs.log"))
+						 ])
+	after_train(model, model_file, model_dir, train_config, label_set, model_name)
 
-	after_train(model, X_train, X_test, y_train, y_test, label_set, train_config.get('model', 'cnn_noname'))
+	model_file.close()
+
 
 def main():
 	parser = argparse.ArgumentParser()
+	parser.add_argument('--model', help='Filename', type=str, required=True)
+	parser.add_argument('--train', help='train folder', type=str, required=True)
+	parser.add_argument('--test', help='test folder', type=str, required=True)
+
 	parser.add_argument('--epoch', help='Epoch ({})'.format(EPOCH), type=int, default=EPOCH)
 	parser.add_argument('--batch', help='Batch size ({})'.format(BATCH), type=int, default=BATCH)
 	parser.add_argument('--split', help='Split ({})'.format(SPLIT), type=float, default=SPLIT)
-	parser.add_argument('--model', help='Filename', type=str, required=True)
 	parser.add_argument('--bw', help='Black and white (1 channel)', action="store_true")
 
 	args = parser.parse_args()
+
+	# testing
+	# print os.path.abspath(args.train)
 
 	train_config = {
 		'epoch': args.epoch,
 		'batch_size': args.batch,
 		'split': args.split,
 		'model': args.model,
+		'train': os.path.abspath(args.train),
+		'test': os.path.abspath(args.test),
 	}
-	print 'Configuration'
+	print('\n\n\nConfiguration')
 	pprint.pprint(train_config)
-	if os.path.exists(os.path.join('./models/', '{}.h5'.format(train_config['model']))):
-		raise ValueError('Model {} already exists', train_config['model'])
 
-	print '---------------------------------------------------------------------------'
+	model_dir = os.path.join('./models/', '{}'.format(train_config['model']))
+	if os.path.exists(model_dir):
+		res = raw_input('Model {} exists, do you want to overwrite? (y/n): ')
+		if res.lower() == 'y' or res.lower() == 'yes':
+			shutil.rmtree(os.path.abspath(model_dir))
+			os.mkdir(os.path.abspath(model_dir))
+			print ('Overwrite folder {}'.format(model_dir))
+		else:
+			print ('No Overwrite folder, exit')
+			exit()
+		# raise ValueError('Model {} already exists', train_config['model'])
+	else:
+		os.mkdir(model_dir)
+
+	print('---------------------------------------------------------------------------')
 	train(train_config)
 
 
