@@ -264,8 +264,8 @@ def dispatch(train_dirs,
 
 	# eye_model = cnn_rnn_model.CNN_RNN_Sequential_model(print_f, SEQUENCE_LENGTH, INPUT_DIM, LABEL_SET)
 	# eye_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy', 'mae'], )
-	# eye_model = cnn_rnn_model.CNN_RNN_Sequential(print_f, SEQUENCE_LENGTH, INPUT_DIM, LABEL_SET)
-	eye_model = cnn_rnn_one_shot.CNN_RNN_ONE_SHOT(print_f, SEQUENCE_LENGTH, INPUT_DIM, LABEL_SET)
+	eye_model = cnn_rnn_model.CNN_RNN_Sequential(print_f, SEQUENCE_LENGTH, INPUT_DIM, LABEL_SET)
+	# eye_model = cnn_rnn_one_shot.CNN_RNN_ONE_SHOT(print_f, SEQUENCE_LENGTH, INPUT_DIM, LABEL_SET)
 	eye_model.compile()
 
 	# exit()

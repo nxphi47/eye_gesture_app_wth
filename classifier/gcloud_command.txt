@@ -65,13 +65,14 @@ python trainer/train.py --train_dirs datasets/p1/train/ datasets/p2/train/ datas
 python trainer/train.py  --train_dirs datasets/p1/train.zip datasets/p2/train.zip datasets/phi/train.zip \
                          --eval_dirs datasets/p1/test.zip datasets/p2/test.zip datasets/phi/test.zip \
 
-python trainer/train.py  --train_dirs ../datasets/phi/train.zip ../datasets/p1/train.zip  \
+python trainer/train.py  --train_dirs ../datasets/phi/train.zip ../datasets/p1/train.zip ../datasets/p2/train.zip \
                          --get_zip \
                          --eval_dirs ../datasets/phi/test.zip  \
                          --job-dir models/fake_data_zip_3 \
-                         --epoch 2 \
+                         --epoch 5 \
                          --batch 32 \
                          --eval-frequency 1 \
+                         --one_shot_freq 3 \
 
                          --eval_dirs datasets/p1/test/ datasets/p2/test/ \
 ```
