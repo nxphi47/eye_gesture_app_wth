@@ -167,7 +167,7 @@ class CNN_RNN_Sequential():
 		print ('Shape x: {}'.format(self.X.shape))
 		print ('Shape y: {}'.format(self.y.shape))
 
-	def process_data(self, train_dirs, split):
+	def process_data(self, train_dirs, split=0.2):
 
 		self.X, self.y, y_raws, label_set = utils.load_dataset(train_dirs, self.label_set, self.sequence_length)
 
