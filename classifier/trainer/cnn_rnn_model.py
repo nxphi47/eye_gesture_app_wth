@@ -1,64 +1,67 @@
 #!/usr/bin/env python
 from __future__ import print_function
-
-# from keras.layers.merge import Concatenate, Add, Dot, Multiply
+import tensorflow as tf
+from keras.layers.merge import Concatenate, Add, Dot, Multiply
 import glob
 import os
 from PIL import Image
 import numpy as np
 from keras import backend as K
-from keras.layers import Input, Activation, Conv2D, Dense, Dropout, \
+from keras.layers import Input, Activation, Conv2D, Dense, Dropout, Lambda, \
 	LSTM, Bidirectional, TimeDistributed, MaxPooling2D, BatchNormalization, AveragePooling2D, Flatten
 from keras.models import Model, Sequential
+
+from sklearn.model_selection import train_test_split
 from tensorflow.python.saved_model import builder as saved_model_builder
 from tensorflow.python.saved_model import tag_constants, signature_constants
 from tensorflow.python.saved_model.signature_def_utils_impl import predict_signature_def
 
 # os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-
 import utils
 
-
-"""Deprecated"""
-def load_dataset(base_dir, label_set, sequence_length=15):
-	globs = {}
-	for l in label_set:
-		# source_dir / dimension / labels / batches / images...
-		globs[l] = glob.glob('{src_dir}/{label}/*/*.jpg'.format(src_dir=base_dir, label=l))
-
-	# datasets
-	X = []
-	y = []
-	y_raws = []
-	eye = np.eye(len(label_set))
-	for i, l in enumerate(label_set):
-		data = []
-		for j, img_url in enumerate(globs[l]):
-			img = Image.open(img_url)
-			img_array = utils.normalize_image(np.array(img))
-			if j % sequence_length == 0 and j != 0:
-				# package into sequence
-				X.append(np.array(data))
-				y.append(np.array(eye[i]))
-				y_raws.append(l)
-				data = []
-			# else:
-			data.append(img_array)
-
-	X = np.array(X)
-	y = np.array(y)
-	return X, y, y_raws, label_set
+# """Deprecated"""
+# def load_dataset(base_dir, label_set, sequence_length=15):
+# 	globs = {}
+# 	for l in label_set:
+# 		# source_dir / dimension / labels / batches / images...
+# 		globs[l] = glob.glob('{src_dir}/{label}/*/*.jpg'.format(src_dir=base_dir, label=l))
+#
+# 	# datasets
+# 	X = []
+# 	y = []
+# 	y_raws = []
+# 	eye = np.eye(len(label_set))
+# 	for i, l in enumerate(label_set):
+# 		data = []
+# 		for j, img_url in enumerate(globs[l]):
+# 			img = Image.open(img_url)
+# 			img_array = np.array(img).astype(np.float32)
+# 			# img_array = utils.normalize_image(np.array(img))
+# 			if j % sequence_length == 0 and j != 0:
+# 				# package into sequence
+# 				X.append(np.array(data))
+# 				y.append(np.array(eye[i]))
+# 				y_raws.append(l)
+# 				data = []
+# 			# else:
+# 			data.append(img_array)
+#
+# 	X = np.array(X)
+# 	y = np.array(y)
+# 	return X, y, y_raws, label_set
 
 
 
 # Convolutional blocks
 def add_conv_layer(model, filters, kernel_size, use_bias, activation='relu', pooling='max_pool', batch_norm=False,
-				   input_shape=False):
+				   input_shape=False, padding='valid', dropout=0.0):
 	if input_shape:
 		model.add(Conv2D(input_shape=input_shape, filters=filters, kernel_size=(kernel_size, kernel_size),
+						 padding=padding,
 						 use_bias=use_bias))
 	else:
 		model.add(Conv2D(filters=filters, kernel_size=(kernel_size, kernel_size),
+						 padding=padding,
 						 use_bias=use_bias))
 
 	if batch_norm:
@@ -76,29 +79,52 @@ def add_conv_layer(model, filters, kernel_size, use_bias, activation='relu', poo
 	else:
 		raise Exception('Pooling invalid: {}'.format(pooling))
 
+	if 0.0 < dropout < 1.0:
+		model.add(Dropout(dropout))
+
 	return model
 
 
 def CNN_block(input_shape, print_fn=print):
-	use_bias = False
+	use_bias = True
 	batch_norm = False
 	pooling = 'max_pool'
+	conv_dropout = -1
 
 	model = Sequential()
 
 	model = add_conv_layer(model, filters=8, kernel_size=4, use_bias=use_bias, pooling=pooling, batch_norm=batch_norm,
-						   input_shape=input_shape)
+						   input_shape=input_shape, dropout=conv_dropout)
 
-	model = add_conv_layer(model, filters=16, kernel_size=3, use_bias=use_bias, pooling=pooling, batch_norm=batch_norm)
+	# model = add_conv_layer(model, filters=8, kernel_size=3,
+	# 					   use_bias=use_bias, pooling=pooling,
+	# 					   batch_norm=batch_norm, dropout=conv_dropout)
 
-	model = add_conv_layer(model, filters=32, kernel_size=3, use_bias=use_bias, pooling=pooling, batch_norm=batch_norm)
+	model = add_conv_layer(model, filters=16, kernel_size=3,
+						   use_bias=use_bias, pooling=pooling,
+						   batch_norm=batch_norm, dropout=conv_dropout)
 
-	model = add_conv_layer(model, filters=64, kernel_size=3, use_bias=use_bias, pooling=pooling, batch_norm=batch_norm)
+	# model = add_conv_layer(model, filters=16, kernel_size=3,
+	# 					   use_bias=use_bias, pooling=pooling,
+	# 					   batch_norm=batch_norm, dropout=conv_dropout)
+
+	model = add_conv_layer(model, filters=32, kernel_size=3,
+						   use_bias=use_bias, pooling=pooling,
+						   batch_norm=batch_norm, dropout=conv_dropout)
+
+	model = add_conv_layer(model, filters=64, kernel_size=3,
+						   use_bias=use_bias, pooling=pooling,
+						   batch_norm=batch_norm, dropout=conv_dropout)
+
+	# 4x4x64
 
 	# flatten = Flatten()(conv)
 	model.add(Flatten())
 
 	model.add(Dense(128, activation='relu'))
+	# if batch_norm:
+	# 	model.add(BatchNormalization())
+	# model.add(Activation(activation='relu'))
 	model.add(Dropout(0.5))
 
 	# model = Model(outputs=fc)
@@ -110,7 +136,6 @@ def CNN_block(input_shape, print_fn=print):
 
 	return model
 
-
 def CNN_RNN_Sequential_model(print_f=print,
 							 sequence_length=15,
 							 input_dim=64,
@@ -121,13 +146,18 @@ def CNN_RNN_Sequential_model(print_f=print,
 
 	# inputs = Input(shape=(config.SEQUENCE_LENGTH, config.INPUT_DIM, config.INPUT_DIM, config.CHANNEL))
 	inputs = Input(shape=(sequence_length, input_dim, input_dim, 3))
+	preprocess = Lambda(lambda x: tf.divide(tf.subtract(tf.cast(x, tf.float32), 127.5), 127.5))(inputs)
+	# preprocess = inputs
 
 	cnn_input_shape = (input_dim, input_dim, 3)
 
-	timedistributed = TimeDistributed(CNN_block(cnn_input_shape, print_fn=print_f))(inputs)
+	timedistributed = TimeDistributed(CNN_block(cnn_input_shape, print_fn=print_f))(preprocess)
 
-	lstm = Bidirectional(LSTM(units=128))(timedistributed)
-	out_layer = Dense(len(label_set), activation='softmax')(lstm)
+	lstm = Bidirectional(LSTM(units=64))(timedistributed)
+	# dropout = Dropout(0.4)(lstm)
+	dense = Dense(32, activation='relu')(lstm)
+	dropout = Dropout(0.2)(dense)
+	out_layer = Dense(len(label_set), activation='softmax')(dropout)
 
 	model = Model(inputs=inputs, outputs=out_layer)
 
@@ -153,7 +183,9 @@ class CNN_RNN_Sequential():
 		self.model = None
 		self.feed_dict = None
 		self.X = None
+		self.X_val = None
 		self.y = None
+		self.y_val = None
 		self.eye = np.eye(len(self.label_set))
 
 	def compile(self, **kwargs):
@@ -169,7 +201,9 @@ class CNN_RNN_Sequential():
 
 	def process_data(self, train_dirs, split=0.2):
 
-		self.X, self.y, y_raws, label_set = utils.load_dataset(train_dirs, self.label_set, self.sequence_length)
+		X, y, y_raws, label_set = utils.load_dataset(train_dirs, self.label_set, self.sequence_length)
+
+		self.X, self.X_val, self.y, self.y_val = train_test_split(X, y, test_size=split, random_state=42, stratify=y)
 
 		print ('Train Shape x: {}'.format(self.X.shape))
 		print ('Train Shape y: {}'.format(self.y.shape))
@@ -178,7 +212,10 @@ class CNN_RNN_Sequential():
 
 	# TODO: feed_dict is data keyed by label
 	def fit(self, train_dirs, batch_size=32, epochs=10, validation_split=0.1, callbacks=None, **kwargs):
-		self.process_data(train_dirs)
-		self.model.fit(self.X, self.y, batch_size=batch_size, epochs=epochs, validation_split=validation_split,
+		self.process_data(train_dirs, validation_split)
+		self.model.fit(self.X, self.y,
+					   validation_data=[self.X_val, self.y_val],
+					   batch_size=batch_size, epochs=epochs,
+					   # validation_split=validation_split,
 					  callbacks=callbacks
 					  )

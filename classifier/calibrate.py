@@ -5,6 +5,7 @@ from PIL import Image
 from PIL import ImageOps
 import random
 import pprint
+import shutil
 
 import argparse
 import camera
@@ -17,12 +18,18 @@ INPUT_DIM = 64
 
 def record(camera_config):
 	# target_dir = config.TRAIN_TARGET_DIR
-	target_dir = "{}/{}/".format(TRAIN_TARGET_DIR, camera_config['label'])
+	target_dir = "{}/{}/{}/".format(TRAIN_TARGET_DIR, camera_config['person'],  camera_config['label'])
 
+
+
+	if not os.path.exists(target_dir):
+		os.makedirs(target_dir)
+	# os.makedirs(target_dir)
 	folders = os.listdir(target_dir)
 	target_dir = "{}{}".format(target_dir, 'batch_{}/'.format(len(folders)))
 	if not os.path.exists(target_dir):
-		os.mkdir(target_dir)
+		os.makedirs(target_dir)
+	# os.makedirs(target_dir, exist_ok=True)
 
 	target_paths = ["{}img_{}.jpg".format(target_dir, i) for i in range(camera_config.get('duration') * camera_config.get('framerate', FRAMERATE))]
 
@@ -33,7 +40,8 @@ def record(camera_config):
 
 def main():
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-l', '--label', help='Label ({})'.format(LABEL_SET), type=str, choices=LABEL_SET)
+	parser.add_argument('-l', '--label', help='Label ({})'.format(LABEL_SET), type=str, choices=LABEL_SET, required=True)
+	parser.add_argument('-p', '--person', help='person', type=str, required=True)
 	parser.add_argument('-d', '--duration', help='Duration of recording, in seconds <30', type=int, default=10)
 	parser.add_argument('-f', '--framerate', help='Frame rate of recording < 30', type=int, default=FRAMERATE)
 	parser.add_argument('-c', '--channel', help='Channel 1 or 3', type=int, default=CHANNEL, choices=[3, 1])
@@ -48,6 +56,7 @@ def main():
 	if args.label not in LABEL_SET:
 		raise Exception('label {} is wrong'.format(args.label))
 	camera_config = {
+		'person': args.person,
 		'label': args.label,
 		'duration': args.duration,
 		'framerate': args.framerate

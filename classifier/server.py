@@ -31,7 +31,7 @@ import argparse
 CHANNEL = 3
 RESIZE = True
 PORT = 80
-NORMALIZE = True
+NORMALIZE = False # normalize to be handle by the model
 LABEL_SET = ['left', 'right', 'up', 'down', 'center', 'double_blink']
 # DATASETS_SRC_DIR = './datasets/{dim}/'.format(dim=config.INPUT_DIM)
 DATASETS_SRC_DIR = './datasets/'
@@ -102,55 +102,55 @@ def inference():
 
 
 # FIXME: deprecated
-@app.route('/predict', methods=['POST'])
-def predict():
-	global query, model, result
-	if request.method == 'POST':
-		# predict
-		# data = request.get_json(silent=True)
-		# data to be 3d array from js
-		# img = np.array([np.array([np.array([np.array(channel) for channel in col]) for col in row]) for row in data])
-
-		f = request.files['file']
-		path = 'static/' + secure_filename(str(random.randint(0, 1000000)) + f.filename)
-		# path = '/var/www/uploads/' + secure_filename('testfile.jpg')
-		# f.save(path)
-
-		# print "image shape", img.shape
-
-		img = Image.open(f)
-		# img = img.resize((INPUT_DIM, INPUT_DIM), Image.ANTIALIAS)
-		img_array = np.array([np.array(img)])
-		img.save(path)
-		print "Shape"
-		print img_array.shape
-
-		if NORMALIZE:
-			img_array = (img_array.astype(np.float32) - 127.5) / 127.5
-
-		if model is not None:
-
-			# if True:
-			prediction = model.predict(img_array)
-			prediction = prediction[0]
-			index_pred = np.argmax(prediction)
-			response = {
-				"prob": prediction.tolist(),
-				"pred": index_pred,
-				"label": LABEL_SET[index_pred],
-				"image": "{}".format(path)
-			}
-			pprint.pprint(response)
-			return jsonify(response)
-
-		else:
-			print "no model"
-			return jsonify({})
-
-	else:
-		# return null
-		print 'ERROR: method wrong'
-		return jsonify({})
+# @app.route('/predict', methods=['POST'])
+# def predict():
+# 	global query, model, result
+# 	if request.method == 'POST':
+# 		# predict
+# 		# data = request.get_json(silent=True)
+# 		# data to be 3d array from js
+# 		# img = np.array([np.array([np.array([np.array(channel) for channel in col]) for col in row]) for row in data])
+#
+# 		f = request.files['file']
+# 		path = 'static/' + secure_filename(str(random.randint(0, 1000000)) + f.filename)
+# 		# path = '/var/www/uploads/' + secure_filename('testfile.jpg')
+# 		# f.save(path)
+#
+# 		# print "image shape", img.shape
+#
+# 		img = Image.open(f)
+# 		# img = img.resize((INPUT_DIM, INPUT_DIM), Image.ANTIALIAS)
+# 		img_array = np.array([np.array(img)])
+# 		img.save(path)
+# 		print "Shape"
+# 		print img_array.shape
+#
+# 		if NORMALIZE:
+# 			img_array = (img_array.astype(np.float32) - 127.5) / 127.5
+#
+# 		if model is not None:
+#
+# 			# if True:
+# 			prediction = model.predict(img_array)
+# 			prediction = prediction[0]
+# 			index_pred = np.argmax(prediction)
+# 			response = {
+# 				"prob": prediction.tolist(),
+# 				"pred": index_pred,
+# 				"label": LABEL_SET[index_pred],
+# 				"image": "{}".format(path)
+# 			}
+# 			pprint.pprint(response)
+# 			return jsonify(response)
+#
+# 		else:
+# 			print "no model"
+# 			return jsonify({})
+#
+# 	else:
+# 		# return null
+# 		print 'ERROR: method wrong'
+# 		return jsonify({})
 
 
 def load_cnn_model(model_name):

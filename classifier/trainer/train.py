@@ -17,7 +17,6 @@ import zipfile
 
 from keras.models import load_model, Model
 
-
 import utils
 import cnn_rnn_model
 import cnn_rnn_one_shot
@@ -37,158 +36,11 @@ MODEL_NAME = 'eye.hdf5'
 
 # URL can be file
 
-def load_data_dict(base_urls, label_set, sequence_length=15, get_zip=True):
-	globs = {}
-	# print(base_dir)
-	zips = {}
-	zip_dirs = {}
-	if not get_zip:
-		for l in label_set:
-			globs[l] = []
-			for d in base_urls:
-				# print ('Open folder label {} in {}'.format(l, d))
-				path = os.path.join(d, l)
-				# print (path)
-				globs[l] += glob.glob('{dir}/*/*.jpg'.format(dir=path))
-			globs[l].sort()
-	else:
-		for d in base_urls:
-			zips[d] = zipfile.ZipFile(utils.retrieve_file(d), 'r')
-			zip_dirs[d] = {}
-			z_namelist = [n for n in zips[d].namelist() if n.split(".")[-1].lower() == 'jpg']
-			for l in label_set:
-				zip_dirs[d][l] = [n for n in z_namelist if l in n]
-				zip_dirs[d][l].sort()
-
-	# datasets
-	X = []
-	# y = []
-	# y_raws = []
-	# eye = np.eye(len(label_set))
-	feed_dict = {}
-
-	for i, l in enumerate(label_set):
-		print('Label: {}'.format(l))
-		feed_dict[l] = []
-		if get_zip:
-			for d in base_urls:
-				data = []
-				print('---Read Zip file: {}'.format(d))
-				for j, img_url in enumerate(zip_dirs[d][l]):
-					img = Image.open(zips[d].open(img_url, 'r'))
-					img_array = utils.normalize_image(np.array(img))
-					if j % sequence_length == 0 and j != 0:
-						# package into sequence
-						# X.append(np.array(data))
-						# y.append(np.array(eye[i]))
-						# y_raws.append(l)
-						feed_dict[l].append(np.array(data))
-
-						data = []
-					# else:
-					data.append(img_array)
-		else:
-			data = []
-			for j, img_url in enumerate(globs[l]):
-				# if j >= 61:
-				# 	break
-				img = Image.open(img_url)
-				img_array = utils.normalize_image(np.array(img))
-				if j % sequence_length == 0 and j != 0:
-					# package into sequence
-					# X.append(np.array(data))
-					# y.append(np.array(eye[i]))
-					# y_raws.append(l)
-					feed_dict[l].append(np.array(data))
-					data = []
-				# else:
-				data.append(img_array)
-		feed_dict[l] = np.array(feed_dict[l])
-
-	if get_zip:
-		for d in base_urls:
-			zips[d].close()
-
-	return feed_dict
-
-def load_dataset(base_urls, label_set, sequence_length=15, get_zip=True):
-	globs = {}
-	# print(base_dir)
-	zips = {}
-	zip_dirs = {}
-	if not get_zip:
-		for l in label_set:
-			globs[l] = []
-			for d in base_urls:
-				# print ('Open folder label {} in {}'.format(l, d))
-				path = os.path.join(d, l)
-				# print (path)
-				globs[l] += glob.glob('{dir}/*/*.jpg'.format(dir=path))
-			globs[l].sort()
-	else:
-		for d in base_urls:
-			zips[d] = zipfile.ZipFile(utils.retrieve_file(d), 'r')
-			zip_dirs[d] = {}
-			z_namelist = [n for n in zips[d].namelist() if n.split(".")[-1].lower() == 'jpg']
-			for l in label_set:
-				zip_dirs[d][l] = [n for n in z_namelist if l in n]
-				zip_dirs[d][l].sort()
-
-
-	# datasets
-	X = []
-	y = []
-	y_raws = []
-	eye = np.eye(len(label_set))
-
-	for i, l in enumerate(label_set):
-		print('Label: {}'.format(l))
-		if get_zip:
-			for d in base_urls:
-				data = []
-				print('---Read Zip file: {}'.format(d))
-				for j, img_url in enumerate(zip_dirs[d][l]):
-					img = Image.open(zips[d].open(img_url, 'r'))
-					img_array = utils.normalize_image(np.array(img))
-					if j % sequence_length == 0 and j != 0:
-						# package into sequence
-						X.append(np.array(data))
-						y.append(np.array(eye[i]))
-						y_raws.append(l)
-
-						data = []
-					# else:
-					data.append(img_array)
-
-		else:
-			data = []
-			for j, img_url in enumerate(globs[l]):
-				# if j >= 61:
-				# 	break
-				img = Image.open(img_url)
-				img_array = utils.normalize_image(np.array(img))
-				if j % sequence_length == 0 and j != 0:
-					# package into sequence
-					X.append(np.array(data))
-					y.append(np.array(eye[i]))
-					y_raws.append(l)
-					data = []
-				# else:
-				data.append(img_array)
-
-	if get_zip:
-		for d in base_urls:
-			zips[d].close()
-
-	X = np.array(X)
-	y = np.array(y)
-	print (X.shape)
-	print (y.shape)
-	return X, y, y_raws, label_set
 
 
 class EvalCheckPoint(keras.callbacks.Callback):
-	def __init__(self, ml_model, job_dir, test_files, label_set, sequence_lenth, eval_freq=4, print_func=print, epochs=10):
+	def __init__(self, ml_model, job_dir, test_files, label_set, sequence_lenth, eval_freq=4, print_func=print,
+				 epochs=10):
 		self.job_dir = job_dir
 		self.test_files = test_files
 		self.label_set = label_set
@@ -198,7 +50,7 @@ class EvalCheckPoint(keras.callbacks.Callback):
 		self.epochs = epochs
 		self.eval_freq = eval_freq
 		self.model = None
-		self.print_func=print_func
+		self.print_func = print_func
 		self.set_model(ml_model)
 		self.true_val = None
 		self.pred_val = None
@@ -206,11 +58,13 @@ class EvalCheckPoint(keras.callbacks.Callback):
 		self.load_test_data()
 
 	def load_test_data(self):
-		self.X_test, self.y_test, y_raws, label_set = load_dataset(self.test_files, self.label_set, self.sequence_length)
+		self.X_test, self.y_test, y_raws, label_set = utils.load_dataset(self.test_files, self.label_set,
+																   self.sequence_length)
 		# print (self.y_test[0])
 		# print (self.y_test[1])
 		self.true_val = np.array(np.argmax(self.y_test, axis=1))
-		# self.pred_val = np.argmax(model.predict(X), axis=1)
+
+	# self.pred_val = np.argmax(model.predict(X), axis=1)
 
 	def on_epoch_begin(self, epoch, logs={}):
 		if epoch > 0 and (epoch % self.eval_freq == 0 or epoch == self.epochs):
@@ -224,6 +78,8 @@ class EvalCheckPoint(keras.callbacks.Callback):
 
 
 """Dispatch the training process"""
+
+
 def dispatch(train_dirs,
 			 eval_dirs,
 			 job_dir,
@@ -245,7 +101,6 @@ def dispatch(train_dirs,
 			 eval_num_epochs,
 			 num_epochs,
 			 checkpoint_epochs):
-
 	try:
 		if os.path.exists(job_dir):
 			shutil.rmtree(job_dir)
@@ -253,11 +108,14 @@ def dispatch(train_dirs,
 	except:
 		pass
 
+	# very inefficient way
 	custom_logs = []
+	if "gs://" not in job_dir:
+		model_file = open(os.path.join(job_dir, "custom_logs.txt"), 'w')
 
 	def print_f(val):
-		# model_file.write("{}\n".format(val))
-		custom_logs.append("{}\n".format(val))
+		if "gs://" not in job_dir:
+			model_file.write("{}\n".format(val))
 		print(val)
 
 	# training_feed_dict = load_data_dict(train_dirs, LABEL_SET, SEQUENCE_LENGTH, get_zip=get_zip)
@@ -266,7 +124,7 @@ def dispatch(train_dirs,
 	# eye_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy', 'mae'], )
 	eye_model = cnn_rnn_model.CNN_RNN_Sequential(print_f, SEQUENCE_LENGTH, INPUT_DIM, LABEL_SET)
 	# eye_model = cnn_rnn_one_shot.CNN_RNN_ONE_SHOT(print_f, SEQUENCE_LENGTH, INPUT_DIM, LABEL_SET)
-	eye_model.compile()
+	eye_model.compile(learning_phase=1)
 
 	# exit()
 
@@ -290,7 +148,8 @@ def dispatch(train_dirs,
 	# X, y, y_raws, label_set = load_dataset(train_dirs, LABEL_SET, SEQUENCE_LENGTH, get_zip=get_zip)
 
 	# exit()
-	evaluation = EvalCheckPoint(eye_model, job_dir, eval_dirs, LABEL_SET, SEQUENCE_LENGTH, eval_freq=eval_frequency, print_func=print_f, epochs=epoch)
+	evaluation = EvalCheckPoint(eye_model, job_dir, eval_dirs, LABEL_SET, SEQUENCE_LENGTH, eval_freq=eval_frequency,
+								print_func=print_f, epochs=epoch)
 
 	# Tensorboard logs callback
 	tblog = keras.callbacks.TensorBoard(
@@ -323,7 +182,13 @@ def dispatch(train_dirs,
 				  callbacks=callbacks)
 
 	utils.after_train(eye_model.model, MODEL_NAME, job_dir, print_fn=print_f)
-	utils.write_file(job_dir, custom_logs)
+
+	if model_file is not None:
+		model_file.close()
+
+
+# with utils.write_file(job_dir, "custom_logs.txt") as f:
+# 	f.write("\n".join(custom_logs))
 
 
 if __name__ == "__main__":
@@ -332,7 +197,7 @@ if __name__ == "__main__":
 						required=True,
 						type=str,
 						help='Training files local or GCS', nargs='+')
-						# help='Training files local or GCS', )
+	# help='Training files local or GCS', )
 	parser.add_argument('--eval_dirs',
 						required=True,
 						type=str,
@@ -344,7 +209,6 @@ if __name__ == "__main__":
 						help='GCS or local dir to write checkpoints and export model')
 	parser.add_argument('--get_zip', help='Get zip file instead of folder', action='store_true')
 	parser.set_defaults(get_zip=False)
-
 
 	parser.add_argument('--epoch', type=int, default=10, help="\nNumber of epochs")
 	parser.add_argument('--batch', type=int, default=32, help="\nNumber in a batch")
@@ -365,8 +229,6 @@ if __name__ == "__main__":
                        So if train-steps is 500 and train-batch-size if 100 then
                        at most 500 * 100 training instances will be used to train.
                       """)
-
-
 
 	parser.add_argument('--eval-steps',
 						help='Number of steps to run evalution for at each checkpoint',

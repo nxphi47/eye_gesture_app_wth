@@ -15,15 +15,17 @@ from tensorflow.python.saved_model import tag_constants, signature_constants
 from tensorflow.python.saved_model.signature_def_utils_impl import predict_signature_def
 import zipfile
 from tensorflow.python.lib.io import file_io
+import matplotlib.pyplot as plt
 
 def normalize_image(img):
 	# return (img - 127.5) / 127.5
 	return (img.astype(np.float32) - 127.5) / 127.5
 
-
 def denormalize_image(img):
 	result = img * 127.5 + 127.5
 	return result.astype(np.uint8)
+
+NORMALIZE = False
 
 def to_savedmodel(model, export_path):
 	"""Convert the Keras HDF5 model into TensorFlow SavedModel."""
@@ -42,11 +44,27 @@ def to_savedmodel(model, export_path):
 		)
 		builder.save()
 
+def compare_url(a, b):
+	ia = int(a.split('/')[-1].replace('img_', '').split('.')[0])
+	prefix_a = '/'.join(a.split('/')[:-1])
+	ib = int(b.split('/')[-1].replace('img_', '').split('.')[0])
+	prefix_b = '/'.join(b.split('/')[:-1])
+	if prefix_a == prefix_b:
+		return ia - ib
+	elif prefix_a > prefix_b:
+		return 1
+	else:
+		return 0
+
+# big problem with sorting data!!!!!!
 def load_dataset(base_urls, label_set, sequence_length=15, get_zip=True):
 	globs = {}
 	# print(base_dir)
 	zips = {}
 	zip_dirs = {}
+	if os.path.isdir(base_urls[0]):
+		get_zip = False
+
 	if not get_zip:
 		for l in label_set:
 			globs[l] = []
@@ -55,7 +73,7 @@ def load_dataset(base_urls, label_set, sequence_length=15, get_zip=True):
 				path = os.path.join(d, l)
 				# print (path)
 				globs[l] += glob.glob('{dir}/*/*.jpg'.format(dir=path))
-			globs[l].sort()
+			globs[l].sort(compare_url)
 	else:
 		for d in base_urls:
 			zips[d] = zipfile.ZipFile(retrieve_file(d), 'r')
@@ -63,7 +81,8 @@ def load_dataset(base_urls, label_set, sequence_length=15, get_zip=True):
 			z_namelist = [n for n in zips[d].namelist() if n.split(".")[-1].lower() == 'jpg']
 			for l in label_set:
 				zip_dirs[d][l] = [n for n in z_namelist if l in n]
-				zip_dirs[d][l].sort()
+				zip_dirs[d][l].sort(compare_url)
+
 
 	# datasets
 	X = []
@@ -78,33 +97,45 @@ def load_dataset(base_urls, label_set, sequence_length=15, get_zip=True):
 				data = []
 				print('---Read Zip file: {}'.format(d))
 				for j, img_url in enumerate(zip_dirs[d][l]):
-					img = Image.open(zips[d].open(img_url, 'r'))
-					img_array = normalize_image(np.array(img))
-					if j % sequence_length == 0 and j != 0:
-						# package into sequence
-						X.append(np.array(data))
-						y.append(np.array(eye[i]))
-						y_raws.append(l)
+					with Image.open(zips[d].open(img_url, 'r')) as img:
+						# img = Image.open(zips[d].open(img_url, 'r'))
+						if NORMALIZE:
+							img_array = normalize_image(np.array(img))
+						else:
+							img_array = np.array(img)
 
-						data = []
-					# else:
-					data.append(img_array)
+						if j % sequence_length == 0 and j != 0:
+							# package into sequence
+							X.append(np.array(data))
+							y.append(np.array(eye[i]))
+							y_raws.append(l)
+
+							data = []
+						# else:
+						data.append(img_array)
+
 
 		else:
 			data = []
 			for j, img_url in enumerate(globs[l]):
 				# if j >= 61:
 				# 	break
-				img = Image.open(img_url)
-				img_array = normalize_image(np.array(img))
-				if j % sequence_length == 0 and j != 0:
-					# package into sequence
-					X.append(np.array(data))
-					y.append(np.array(eye[i]))
-					y_raws.append(l)
-					data = []
-				# else:
-				data.append(img_array)
+
+				with Image.open(img_url) as img:
+					# img = Image.open(img_url)
+					if NORMALIZE:
+						img_array = normalize_image(np.array(img))
+					else:
+						img_array = np.array(img)
+					# img_array = normalize_image(np.array(img))
+					if j % sequence_length == 0 and j != 0:
+						# package into sequence
+						X.append(np.array(data))
+						y.append(np.array(eye[i]))
+						y_raws.append(l)
+						data = []
+					# else:
+					data.append(img_array)
 
 	if get_zip:
 		for d in base_urls:

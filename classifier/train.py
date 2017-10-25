@@ -2,7 +2,7 @@
 from __future__ import print_function
 import os
 import shutil
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+# os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import numpy as np
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import train_test_split
@@ -27,7 +27,6 @@ EPOCH = 10
 BATCH = 32
 SPLIT = 0.2
 
-
 def normalize_image(img):
 	# return (img - 127.5) / 127.5
 	return (img.astype(np.float32) - 127.5) / 127.5
@@ -36,12 +35,25 @@ def denormalize_image(img):
 	result = img * 127.5 + 127.5
 	return result.astype(np.uint8)
 
+def compare_url(a, b):
+	ia = int(a.split('/')[-1].replace('img_', '').split('.')[0])
+	prefix_a = '/'.join(a.split('/')[:-1])
+	ib = int(b.split('/')[-1].replace('img_', '').split('.')[0])
+	prefix_b = '/'.join(b.split('/')[:-1])
+	if prefix_a == prefix_b:
+		return ia - ib
+	elif prefix_a > prefix_b:
+		return 1
+	else:
+		return 0
+
 
 def load_dataset(base_dir):
 	globs = {}
 	for l in LABEL_SET:
 		# source_dir / dimension / labels / batches / images...
 		globs[l] = glob.glob('{src_dir}/{label}/*/*.jpg'.format(src_dir=base_dir, label=l))
+		globs[l].sort(compare_url)
 
 	# datasets
 	X = []

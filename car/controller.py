@@ -60,6 +60,7 @@ def response_label(car, response):
 def control_loop():
 	global IP_ADDRESS, car
 	try:
+		# http://192.168.43.165/inference
 		url = "http://{}/inference".format(IP_ADDRESS)
 		car = car_driver.Driver()
 		time.sleep(0.5)

@@ -17,7 +17,7 @@ def denormalize_image(img):
 	return result.astype(np.uint8)
 
 
-NORMALIZE = True
+NORMALIZE = False
 
 class Camera():
 	def __init__(self, camera_config):
@@ -54,7 +54,7 @@ class Camera():
 
 		self.pi_camera.capture_sequence(data, 'rgb', use_video_port=True)
 
-		data = np.array(data).reshape((sequence_length, self.INPUT_DIM, self.INPUT_DIM, self.CHANNEL))
+		data = np.array(data).astype(np.float32).reshape((sequence_length, self.INPUT_DIM, self.INPUT_DIM, self.CHANNEL))
 		if NORMALIZE:
 			return normalize_image(data)
 		else:

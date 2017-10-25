@@ -62,16 +62,23 @@ python trainer/train.py --train_dirs datasets/p1/train/ datasets/p2/train/ datas
                          --eval_dirs datasets/p1/test/ datasets/p2/test/ \
 
  *** ZIP version
-python trainer/train.py  --train_dirs datasets/p1/train.zip datasets/p2/train.zip datasets/phi/train.zip \
-                         --eval_dirs datasets/p1/test.zip datasets/p2/test.zip datasets/phi/test.zip \
 
-python trainer/train.py  --train_dirs ../datasets/phi/train.zip ../datasets/p1/train.zip ../datasets/p2/train.zip \
+                         --job-dir models/phi_only \
+
+python trainer/train.py  --train_dirs ../datasets/shengcong/train.zip ../datasets/eric/train.zip ../datasets/hidayah/train.zip ../datasets/p1/train.zip ../datasets/p2/train.zip \
+
+
+python trainer/train.py  --train_dirs ../datasets/hidayah/train.zip \
+                         --eval_dirs ../datasets/hidayah/test.zip \
+
+python trainer/train.py  --train_dirs ../datasets/phi/train.zip ../datasets/shengcong/train.zip ../datasets/eric/train.zip ../datasets/hidayah/train.zip \
+                         --eval_dirs ../datasets/phi/test.zip  ../datasets/shengcong/test.zip ../datasets/eric/test.zip ../datasets/hidayah/test.zip\
+                         --job-dir models/fours_reduce \
                          --get_zip \
-                         --eval_dirs ../datasets/phi/test.zip ../datasets/p1/test.zip ../datasets/p2/test.zip \
-                         --job-dir models/fake_data_zip_5 \
-                         --epoch 21 \
-                         --batch 128 \
-                         --eval-frequency 4 \
+                         --epoch 10 \
+                         --batch 32 \
+                         --eval-frequency 1 \
+
                          --one_shot_freq 3 \
 
                          --eval_dirs datasets/p1/test/ datasets/p2/test/ \
@@ -91,7 +98,7 @@ gcloud ml-engine local train --package-path trainer \
                              --eval_dirs datasets/phi/test \
                              --job-dir models/fake_data \
                              --epoch 3 \
-                             --batch 32 \
+                             --batch 64 \
                              --eval-frequency 1 \
 
                              --eval_dirs datasets/p1/test/ datasets/p2/test/ \
