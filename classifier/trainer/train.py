@@ -1,31 +1,23 @@
 #!/usr/bin/env python
 from __future__ import print_function
+
 import argparse
 import os
-import glob
-import json
-import numpy as np
 import shutil
 
-from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.model_selection import train_test_split
-import pprint
-from PIL import Image
-import tensorflow as tf
 import keras
-import zipfile
+import numpy as np
+from sklearn.metrics import classification_report, confusion_matrix
 
-from keras.models import load_model, Model
-
+# import cnn_rnn_model
+# import resnet_synthetic_gan
+# import cnn_rnn_one_shot
+import densenet
 # from . import utils
 # from . import cnn_rnn_model
 # from . import resnet_synthetic_gan
 # from . import cnn_rnn_one_shot
 import utils
-import cnn_rnn_model
-import resnet_synthetic_gan
-import cnn_rnn_one_shot
-import densenet
 
 LABEL_SET = ['left', 'right', 'up', 'down', 'center', 'double_blink']
 DATASETS_SRC_DIR = './datasets/'
