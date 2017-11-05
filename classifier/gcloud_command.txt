@@ -24,6 +24,34 @@ gsutil cp $GCS_TRAIN_FILE $TRAIN_FILE
 gsutil cp $GCS_EVAL_FILE $EVAL_FILE
 ```
 
+## Dataset generation
+python3 trainer/files_to_binary.py \
+    --files ../datasets/phi/train.zip ../datasets/eric/train.zip ../datasets/shengcong/train.zip ../datasets/hidayah/train.zip \
+    --out ../datasets/phi_eric_shengcong_hidayah_1/train \
+
+python3 trainer/files_to_binary.py \
+    --files ../datasets/phi/test.zip ../datasets/eric/test.zip ../datasets/shengcong/test.zip ../datasets/hidayah/test.zip \
+    --out ../datasets/phi_eric_shengcong_hidayah_1/test \
+
+python3 trainer/files_to_binary.py \
+    --files ../datasets/phi/train.zip ../datasets/eric/train.zip ../datasets/shengcong/train.zip ../datasets/hidayah/train.zip \
+    --out ../datasets/phi_eric_shengcong_hidayah_rad_1/train \
+
+
+python3 trainer/files_to_binary.py \
+    --split 0.2 \
+    --files ../datasets/phi/phi.zip ../datasets/datasets/eric.zip ../datasets/datasets/shengcong.zip ../datasets/datasets/hidayah.zip ../datasets/datasets/rahdiyah.zip \
+    --out ../datasets/all5/all5_02 \
+
+python3 trainer/files_to_binary.py \
+    --split 0.15 \
+    --augment_count 15 \
+    --files ../datasets/phi/phi.zip ../datasets/datasets/eric.zip ../datasets/datasets/shengcong.zip ../datasets/datasets/hidayah.zip ../datasets/datasets/rahdiyah.zip \
+    --out ../datasets/all5_augment_02/all5_augment_02 \
+
+
+
+
 ## Virtual environment
 
 Virtual environments are strongly suggested, but not required. Installing this
@@ -82,6 +110,27 @@ python trainer/train.py  --train_dirs ../datasets/phi/train.zip ../datasets/shen
                          --one_shot_freq 3 \
 
                          --eval_dirs datasets/p1/test/ datasets/p2/test/ \
+
+*** NPZ version
+python3 trainer/train.py --epoch 4 --batch 32 --eval-frequency 1 \
+        --train_dirs ../datasets/phi_eric_shengcong_hidayah_1/train.npz \
+        --eval_dirs ../datasets/phi_eric_shengcong_hidayah_1/test.npz \
+        --job-dir models/fours_npz_nobn \
+
+python3 trainer/train.py --epoch 2 --batch 32 \
+        --eval-frequency 1 \
+        --train_dirs ../datasets/all5/all5_02_train.npz \
+        --eval_dirs ../datasets/all5/all5_02_test.npz \
+        --job-dir models/all5_bn \
+
+# dense net
+python3 trainer/train.py --epoch 5 --batch 32 \
+        --eval-frequency 1 \
+        --config_file trainer/densenet_config.json \
+        --train_dirs ../datasets/all5/all5_02_train.npz \
+        --eval_dirs ../datasets/all5/all5_02_test.npz \
+        --job-dir models/all5_bn_densenet \
+
 ```
 
 ## Training using gcloud local

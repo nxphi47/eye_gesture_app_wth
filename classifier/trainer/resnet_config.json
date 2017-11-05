@@ -1,0 +1,20 @@
+{
+  "LSTM": {"units": 64},
+  "dropout": {"rate": 0.0},
+  "cnn_block": {
+	"batch_norm": true,
+	"dropout": 0.0,
+	"first_conv": {"filters":16, "kernel_size": [3, 3], "strides": [2, 2], "padding": "same"},
+	"first_activation": {"activation": "relu"},
+	"first_pool": {"pool_size": [2, 2]},
+	"res_modules": [
+	  {"conv_filters": 32, "batch_norm": true},
+	  {"conv_filters": 32, "batch_norm": true},
+	  {"conv_filters": [32, 32, 64], "batch_norm": true},
+	  {"conv_filters": [32, 32, 64], "batch_norm": true}
+	],
+	"second_conv": {"filters": 16, "kernel_size": [1, 1]},
+	"second_activation": {"activation": "relu"},
+	"second_dense": {"units": 64, "activation": "relu"}
+  }
+}

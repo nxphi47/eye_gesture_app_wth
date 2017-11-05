@@ -6,16 +6,18 @@ import glob
 import os
 from PIL import Image
 import numpy as np
+import keras
 from keras import backend as K
 from keras.layers import Input, Activation, Conv2D, Dense, Dropout, \
 	LSTM, Bidirectional, TimeDistributed, MaxPooling2D, BatchNormalization, AveragePooling2D, Flatten
 from keras.models import Model, Sequential
+from sklearn.metrics import classification_report, confusion_matrix
 from tensorflow.python.saved_model import builder as saved_model_builder
 from tensorflow.python.saved_model import tag_constants, signature_constants
 from tensorflow.python.saved_model.signature_def_utils_impl import predict_signature_def
 import zipfile
+from gzip import GzipFile
 from tensorflow.python.lib.io import file_io
-import matplotlib.pyplot as plt
 
 def normalize_image(img):
 	# return (img - 127.5) / 127.5
@@ -56,10 +58,23 @@ def compare_url(a, b):
 	else:
 		return 0
 
+# key compare urls
+OFFSET_BATCH = 1000000
+def key_compare_url(a):
+	ia = int(a.split('/')[-1].replace('img_', '').split('.')[0])
+	batch_num = int(a.split('/')[-2].replace('batch_', ''))
+	# prefix_a = '/'.join(a.split('/')[:-1])
+	return batch_num * OFFSET_BATCH + ia
+
+def load_npz(url):
+	files = np.load(url)
+	return files['X'], files['y']
+
+
 # big problem with sorting data!!!!!!
 def load_dataset(base_urls, label_set, sequence_length=15, get_zip=True):
 	globs = {}
-	# print(base_dir)
+	print(base_urls)
 	zips = {}
 	zip_dirs = {}
 	if os.path.isdir(base_urls[0]):
@@ -77,12 +92,15 @@ def load_dataset(base_urls, label_set, sequence_length=15, get_zip=True):
 	else:
 		for d in base_urls:
 			zips[d] = zipfile.ZipFile(retrieve_file(d), 'r')
+			# zips[d] = GzipFile(d, 'r+b')
 			zip_dirs[d] = {}
 			z_namelist = [n for n in zips[d].namelist() if n.split(".")[-1].lower() == 'jpg']
 			for l in label_set:
 				zip_dirs[d][l] = [n for n in z_namelist if l in n]
-				zip_dirs[d][l].sort(compare_url)
-
+				# zip_dirs[d][l].sort(compare_url)
+				zip_dirs[d][l].sort(key=key_compare_url)
+				# for u in zip_dirs[d][l]:
+				# 	print(u)
 
 	# datasets
 	X = []
@@ -169,7 +187,7 @@ def retrieve_file(file_path):
 		# with  as f:
 		return file_io.FileIO(file_path, 'r')
 	else:
-		return open(file_path, 'r')
+		return open(file_path, 'r+b')
 
 def after_train(model, model_name, job_dir, print_fn=print):
 # def after_train(model, model_file, model_dir, train_config, label_set, model_name='cnn_', print_fn=print):
@@ -184,3 +202,58 @@ def after_train(model, model_name, job_dir, print_fn=print):
 	# Convert the Keras model to TensorFlow SavedModel
 	print_fn('Save model to {}'.format(job_dir))
 	to_savedmodel(model, os.path.join(job_dir, 'export'))
+
+
+def report(true_val, pred_val, label_set, epoch=0, print_fn=print, digits=4):
+	report = classification_report(true_val, pred_val, target_names=label_set, digits=digits)
+	matrix = confusion_matrix(true_val, pred_val)
+	print_fn("----- Epoch:{} -----".format(epoch))
+	print_fn(report)
+	print_fn(matrix)
+
+
+class EvalCheckPoint(keras.callbacks.Callback):
+	def __init__(self, ml_model,
+				 job_dir,
+				 X, y,
+				 label_set,
+				 sequence_lenth,
+				 eval_freq=4,
+				 print_func=print,
+				 epochs=10,
+				 batch_norm=False
+				 ):
+		self.job_dir = job_dir
+		self.label_set = label_set
+		self.sequence_length = sequence_lenth
+
+		self.X_test = X
+		self.y_test = y
+		self.batch_norm = batch_norm
+
+		self.epochs = epochs
+		self.eval_freq = eval_freq
+		self.model = None
+		self.print_func = print_func
+		self.set_model(ml_model)
+		self.true_val = None
+		self.pred_val = None
+
+		self.true_val = np.array(np.argmax(self.y_test, axis=1))
+
+	def on_epoch_begin(self, epoch, logs={}):
+		if epoch > 0 and (epoch % self.eval_freq == 0 or epoch == self.epochs):
+			if self.model is not None:
+				# if self.batch_norm:
+				K.set_learning_phase(0)
+				pred_val = np.argmax(self.model.predict(self.X_test), axis=1)
+				K.set_learning_phase(1)
+
+				# if self.batch_norm:
+				# K.set_learning_phase(1)
+				# report = classification_report(self.true_val, pred_val, target_names=self.label_set, digits=4)
+				# matrix = confusion_matrix(self.true_val, pred_val)
+				# self.print_func("----- Epoch:{} -----".format(epoch))
+				# self.print_func(report)
+				# self.print_func(matrix)
+				report(self.true_val, pred_val, self.label_set, print_fn=self.print_func)

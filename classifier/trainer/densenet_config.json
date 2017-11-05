@@ -1,0 +1,12 @@
+{
+  "LSTM": {"units": 64},
+  "dropout": {"rate": 0.0},
+  "cnn_block": {
+	"batch_norm": true,
+	"nb_fc": 32,
+	"depth": 13,
+	"nb_dense_block": 3,
+	"growth_rate": 4,
+	"nb_filter": 8
+  }
+}

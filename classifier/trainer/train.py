@@ -17,9 +17,15 @@ import zipfile
 
 from keras.models import load_model, Model
 
+# from . import utils
+# from . import cnn_rnn_model
+# from . import resnet_synthetic_gan
+# from . import cnn_rnn_one_shot
 import utils
 import cnn_rnn_model
+import resnet_synthetic_gan
 import cnn_rnn_one_shot
+import densenet
 
 LABEL_SET = ['left', 'right', 'up', 'down', 'center', 'double_blink']
 DATASETS_SRC_DIR = './datasets/'
@@ -35,8 +41,6 @@ MODEL_NAME = 'eye.hdf5'
 
 
 # URL can be file
-
-
 
 class EvalCheckPoint(keras.callbacks.Callback):
 	def __init__(self, ml_model, job_dir, test_files, label_set, sequence_lenth, eval_freq=4, print_func=print,
@@ -82,6 +86,7 @@ class EvalCheckPoint(keras.callbacks.Callback):
 
 def dispatch(train_dirs,
 			 eval_dirs,
+			 config_file,
 			 job_dir,
 			 epoch,
 			 batch,
@@ -108,7 +113,8 @@ def dispatch(train_dirs,
 	except:
 		pass
 
-	# very inefficient way
+	assert os.path.exists(config_file)
+
 	custom_logs = []
 	if "gs://" not in job_dir:
 		model_file = open(os.path.join(job_dir, "custom_logs.txt"), 'w')
@@ -118,29 +124,44 @@ def dispatch(train_dirs,
 			model_file.write("{}\n".format(val))
 		print(val)
 
+	checkpoint_path = FILE_PATH
+	if not job_dir.startswith("gs://"):
+		checkpoint_path = os.path.join(job_dir, checkpoint_path)
 	# training_feed_dict = load_data_dict(train_dirs, LABEL_SET, SEQUENCE_LENGTH, get_zip=get_zip)
 
 	# eye_model = cnn_rnn_model.CNN_RNN_Sequential_model(print_f, SEQUENCE_LENGTH, INPUT_DIM, LABEL_SET)
 	# eye_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy', 'mae'], )
-	eye_model = cnn_rnn_model.CNN_RNN_Sequential(print_f, SEQUENCE_LENGTH, INPUT_DIM, LABEL_SET)
+	# eye_model = cnn_rnn_model.CNN_RNN_Sequential(print_f, SEQUENCE_LENGTH, INPUT_DIM, LABEL_SET)
 	# eye_model = cnn_rnn_one_shot.CNN_RNN_ONE_SHOT(print_f, SEQUENCE_LENGTH, INPUT_DIM, LABEL_SET)
-	eye_model.compile(learning_phase=1)
+	# eye_model.compile(learning_phase=1)
+
+	eye_model = resnet_synthetic_gan.ResNet_RNN_classifier(config_file=config_file,
+														   job_dir=job_dir,
+														   checkpoint_path=checkpoint_path, print_f=print_f,
+														   sequence_length=SEQUENCE_LENGTH,
+														   input_dim=INPUT_DIM,
+														   label_set=LABEL_SET)
+	eye_model = densenet.DenseNet_RNN_classifier(config_file=config_file,
+														   job_dir=job_dir,
+														   checkpoint_path=checkpoint_path, print_f=print_f,
+														   sequence_length=SEQUENCE_LENGTH,
+														   input_dim=INPUT_DIM,
+														   label_set=LABEL_SET)
+
+	eye_model.compile()
 
 	# exit()
 
 	# Unhappy hack to work around h5py not being able to write to GCS.
 	# Force snapshots and saves to local filesystem, then copy them over to GCS.
-	checkpoint_path = FILE_PATH
-	if not job_dir.startswith("gs://"):
-		checkpoint_path = os.path.join(job_dir, checkpoint_path)
 
 	# Model checkpoint callback
-	checkpoint = keras.callbacks.ModelCheckpoint(
-		checkpoint_path,
-		monitor='val_loss',
-		verbose=1,
-		period=checkpoint_epochs,
-		mode='max')
+	# checkpoint = keras.callbacks.ModelCheckpoint(
+	# 	checkpoint_path,
+	# 	monitor='val_loss',
+	# 	verbose=1,
+	# 	period=checkpoint_epochs,
+	# 	mode='max')
 
 	# TODO: load data
 	print('Loading data')
@@ -148,20 +169,20 @@ def dispatch(train_dirs,
 	# X, y, y_raws, label_set = load_dataset(train_dirs, LABEL_SET, SEQUENCE_LENGTH, get_zip=get_zip)
 
 	# exit()
-	evaluation = EvalCheckPoint(eye_model, job_dir, eval_dirs, LABEL_SET, SEQUENCE_LENGTH, eval_freq=eval_frequency,
-								print_func=print_f, epochs=epoch)
-
-	# Tensorboard logs callback
-	tblog = keras.callbacks.TensorBoard(
-		log_dir=os.path.join(job_dir, 'logs'),
-		histogram_freq=4,
-		write_graph=True,
-		embeddings_freq=0)
-
-	callbacks = [checkpoint,
-				 evaluation,
-				 # tblog
-				 ]
+	# evaluation = EvalCheckPoint(eye_model, job_dir, eval_dirs, LABEL_SET, SEQUENCE_LENGTH, eval_freq=eval_frequency,
+	# 							print_func=print_f, epochs=epoch)
+	#
+	# # Tensorboard logs callback
+	# tblog = keras.callbacks.TensorBoard(
+	# 	log_dir=os.path.join(job_dir, 'logs'),
+	# 	histogram_freq=4,
+	# 	write_graph=True,
+	# 	embeddings_freq=0)
+	#
+	# callbacks = [checkpoint,
+	# 			 evaluation,
+	# 			 # tblog
+	# 			 ]
 
 	# FIXME: unused part copied from census
 	# eye_model.fit_generator(
@@ -174,14 +195,21 @@ def dispatch(train_dirs,
 	# eye_model.fit(X, y, batch_size=batch, epochs=epoch, validation_split=split,
 	# 			  callbacks=callbacks
 	# 			  )
-	eye_model.fit(train_dirs=train_dirs,
+	# eye_model.fit(train_files=train_dirs,
+	# 			  batch_size=batch,
+	# 			  epochs=epoch,
+	# 			  one_shot_freq=one_shot_freq,
+	# 			  validation_split=split,
+	# 			  callbacks=callbacks)
+	eye_model.fit(train_files=train_dirs,
+				  test_files=eval_dirs,
 				  batch_size=batch,
 				  epochs=epoch,
-				  one_shot_freq=one_shot_freq,
 				  validation_split=split,
-				  callbacks=callbacks)
+				  checkpoint_epochs=checkpoint_epochs,
+				  eval_freq=eval_frequency)
 
-	utils.after_train(eye_model.model, MODEL_NAME, job_dir, print_fn=print_f)
+	# utils.after_train(eye_model.model, MODEL_NAME, job_dir, print_fn=print_f)
 
 	if model_file is not None:
 		model_file.close()
@@ -201,12 +229,17 @@ if __name__ == "__main__":
 	parser.add_argument('--eval_dirs',
 						required=True,
 						type=str,
-
 						help='Evaluation files local or GCS', nargs="+")
 	parser.add_argument('--job-dir',
 						required=True,
 						type=str,
 						help='GCS or local dir to write checkpoints and export model')
+	parser.add_argument('--config_file',
+						# required=True,
+						type=str,
+						default='trainer/resnet_config.json',
+						help='resnet config file')
+
 	parser.add_argument('--get_zip', help='Get zip file instead of folder', action='store_true')
 	parser.set_defaults(get_zip=False)
 
