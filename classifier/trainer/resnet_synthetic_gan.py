@@ -2,6 +2,7 @@
 This model is  GAN which take a synthetic image from eye app and train on real image
 to refine synthetic image to pseudo image for classification model
 """
+from __future__ import print_function
 
 import tensorflow as tf
 import numpy as np

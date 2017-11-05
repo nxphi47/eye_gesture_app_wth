@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
-
+from __future__ import division
 # from keras.layers.merge import Concatenate, Add, Dot, Multiply
 import glob
 import os
