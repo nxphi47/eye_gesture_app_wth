@@ -7,7 +7,7 @@ REQUIRED_PACKAGES = ['Keras>=2.0.8',
 					 # 'google-cloud-storage>=1.4.0',
 					 'scikit-learn>=0.18.0',
 					 'Pillow>=4.2.0',
-                     'h5py>=2.7.0']
+                     'h5py>=2.7.0', 'numpy']
 
 setup(
     name='trainer',

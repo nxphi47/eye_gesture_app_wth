@@ -1,9 +1,10 @@
+from __future__ import print_function
 import time
 import numpy as np
 try :
 	from picamera import PiCamera
 except ImportError:
-	print 'PiCamera is not present, ignore this message if you are not in Raspberry Pi'
+	print('PiCamera is not present, ignore this message if you are not in Raspberry Pi')
 
 from PIL import Image, ImageOps
 

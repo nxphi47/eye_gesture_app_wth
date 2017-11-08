@@ -1,32 +1,14 @@
 #!/usr/bin/env python
-import glob
-import os
-import random
-
-import numpy as np
-from PIL import Image
-from PIL import ImageOps
-import tensorflow as tf
-
-from keras.models import Sequential, Model, load_model
-# from keras.layers import Dense, Activation, Conv2D, MaxPool2D, Flatten, Dropout, BatchNormalization, Input, \
-#	AveragePooling2D
-# from keras.layers.merge import Concatenate, Add, Dot, Multiply
-# from keras import metrics
-# from keras.callbacks import BaseLogger, ProgbarLogger, ReduceLROnPlateau
-# from sklearn.metrics import classification_report, confusion_matrix
-# from sklearn.model_selection import train_test_split
-import pprint
-import json
-import thread
-import time
-import camera
-
-from flask import Flask, render_template, request, jsonify
-from flask_cors import CORS
-from werkzeug.utils import secure_filename
-
+from __future__ import print_function
 import argparse
+
+import keras.backend as K
+import numpy as np
+from flask import Flask, jsonify
+from flask_cors import CORS
+from keras.models import load_model
+
+import camera
 
 CHANNEL = 3
 RESIZE = True
@@ -64,6 +46,7 @@ def denormalize_image(img):
 def ip_ping():
 	return jsonify({'result': True})
 
+
 @app.route('/inference')
 def inference():
 	global query, model, result, pi_camera
@@ -71,13 +54,13 @@ def inference():
 		data = pi_camera.capture_sequence_to_array(SEQUENCE_LENGTH)
 
 		# data = np.random.uniform(-1, 1, (15, 64, 64, 3))
-		print "data retrieve from camera"
+		print("data retrieve from camera")
 
 		if model is not None:
 			try:
-				print "start prediction"
+				print("start prediction")
 				predicted = model.predict(np.array([data]))
-				print "end of prediction"
+				print("end of prediction")
 				# label = np.argmax(label, axis=1)
 				prop = predicted[0]
 				label = LABEL_SET[np.argmax(prop)]
@@ -89,7 +72,7 @@ def inference():
 				}
 				return jsonify(json_obj)
 			except Exception as e:
-				print e
+				print(e)
 				return jsonify({})
 
 			# return jsonify(json_obj)
@@ -97,7 +80,7 @@ def inference():
 			return jsonify({})
 
 	else:
-		print 'ERROR'
+		print('ERROR')
 		raise Exception('pi_camera not found!')
 
 
@@ -116,14 +99,14 @@ def inference():
 # 		# path = '/var/www/uploads/' + secure_filename('testfile.jpg')
 # 		# f.save(path)
 #
-# 		# print "image shape", img.shape
+# 		# print("image shape", img.shape
 #
 # 		img = Image.open(f)
 # 		# img = img.resize((INPUT_DIM, INPUT_DIM), Image.ANTIALIAS)
 # 		img_array = np.array([np.array(img)])
 # 		img.save(path)
-# 		print "Shape"
-# 		print img_array.shape
+# 		print("Shape"
+# 		print(img_array.shape
 #
 # 		if NORMALIZE:
 # 			img_array = (img_array.astype(np.float32) - 127.5) / 127.5
@@ -144,12 +127,12 @@ def inference():
 # 			return jsonify(response)
 #
 # 		else:
-# 			print "no model"
+# 			print("no model"
 # 			return jsonify({})
 #
 # 	else:
 # 		# return null
-# 		print 'ERROR: method wrong'
+# 		print('ERROR: method wrong'
 # 		return jsonify({})
 
 
@@ -164,9 +147,13 @@ def load_cnn_model(model_name):
 	# model_name = MODEL_NAME
 	# model_name = files[-1]
 
-	print "open filename: {}".format(model_name)
+	print("open filename: {}".format(model_name))
+	K.set_learning_phase(1)
 	model = load_model('{}{}.h5'.format(model_dir, model_name))
-	print "Finish load model"
+	K.set_learning_phase(0)
+
+
+	print("Finish load model with learning phase 0")
 
 	camera_config = {
 		'duration': 15,
@@ -185,7 +172,7 @@ def main():
 
 
 	# thread.start_new_thread(prediction_loop, ())
-	print 'run server'
+	print('run server')
 	try:
 		load_cnn_model(args.model)
 		app.run(host='0.0.0.0', port=PORT, debug=False)

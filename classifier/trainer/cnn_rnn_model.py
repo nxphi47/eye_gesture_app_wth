@@ -18,38 +18,7 @@ from tensorflow.python.saved_model.signature_def_utils_impl import predict_signa
 
 # os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import utils
-
-# """Deprecated"""
-# def load_dataset(base_dir, label_set, sequence_length=15):
-# 	globs = {}
-# 	for l in label_set:
-# 		# source_dir / dimension / labels / batches / images...
-# 		globs[l] = glob.glob('{src_dir}/{label}/*/*.jpg'.format(src_dir=base_dir, label=l))
-#
-# 	# datasets
-# 	X = []
-# 	y = []
-# 	y_raws = []
-# 	eye = np.eye(len(label_set))
-# 	for i, l in enumerate(label_set):
-# 		data = []
-# 		for j, img_url in enumerate(globs[l]):
-# 			img = Image.open(img_url)
-# 			img_array = np.array(img).astype(np.float32)
-# 			# img_array = utils.normalize_image(np.array(img))
-# 			if j % sequence_length == 0 and j != 0:
-# 				# package into sequence
-# 				X.append(np.array(data))
-# 				y.append(np.array(eye[i]))
-# 				y_raws.append(l)
-# 				data = []
-# 			# else:
-# 			data.append(img_array)
-#
-# 	X = np.array(X)
-# 	y = np.array(y)
-# 	return X, y, y_raws, label_set
-
+import base_model
 
 
 # Convolutional blocks
@@ -86,8 +55,8 @@ def add_conv_layer(model, filters, kernel_size, use_bias, activation='relu', poo
 
 
 def CNN_block(input_shape, print_fn=print):
-	use_bias = True
-	batch_norm = False
+	use_bias = False
+	batch_norm = True
 	pooling = 'max_pool'
 	conv_dropout = -1
 
@@ -121,11 +90,12 @@ def CNN_block(input_shape, print_fn=print):
 	# flatten = Flatten()(conv)
 	model.add(Flatten())
 
-	model.add(Dense(128, activation='relu'))
-	# if batch_norm:
-	# 	model.add(BatchNormalization())
-	# model.add(Activation(activation='relu'))
-	model.add(Dropout(0.5))
+	model.add(Dense(64,))
+	if batch_norm:
+		model.add(BatchNormalization())
+	model.add(Activation(activation='relu'))
+
+	# model.add(Dropout(0.5))
 
 	# model = Model(outputs=fc)
 
@@ -144,6 +114,8 @@ def CNN_RNN_Sequential_model(print_f=print,
 	if label_set is None:
 		label_set = ['left', 'right', 'up', 'down', 'center', 'double_blink']
 
+	batch_norm = True
+
 	# inputs = Input(shape=(config.SEQUENCE_LENGTH, config.INPUT_DIM, config.INPUT_DIM, config.CHANNEL))
 	inputs = Input(shape=(sequence_length, input_dim, input_dim, 3))
 	preprocess = Lambda(lambda x: tf.divide(tf.subtract(tf.cast(x, tf.float32), 127.5), 127.5))(inputs)
@@ -153,11 +125,17 @@ def CNN_RNN_Sequential_model(print_f=print,
 
 	timedistributed = TimeDistributed(CNN_block(cnn_input_shape, print_fn=print_f))(preprocess)
 
-	lstm = Bidirectional(LSTM(units=64))(timedistributed)
+	feed_input = Bidirectional(LSTM(units=64))(timedistributed)
+
 	# dropout = Dropout(0.4)(lstm)
-	dense = Dense(32, activation='relu')(lstm)
-	dropout = Dropout(0.2)(dense)
-	out_layer = Dense(len(label_set), activation='softmax')(dropout)
+	feed_input = Dense(32)(feed_input)
+
+	if batch_norm:
+		feed_input = BatchNormalization()(feed_input)
+	feed_input = Activation('relu')
+	# dropout = Dropout(0.2)(dense)
+
+	out_layer = Dense(len(label_set), activation='softmax')(feed_input)
 
 	model = Model(inputs=inputs, outputs=out_layer)
 
@@ -169,53 +147,49 @@ def CNN_RNN_Sequential_model(print_f=print,
 	return model
 
 
-class CNN_RNN_Sequential():
-	def __init__(self, print_f=print,
-					 sequence_length=15,
-					 input_dim=64,
-					 label_set=None
-					 ):
-		self.print_f = print_f
-		self.sequence_length = sequence_length
-		self.input_dim = input_dim
-		self.label_set = label_set
+class CNN_RNN_Sequential(base_model.ClassiferModel):
+	def __init__(self,
+				 config_file,
+				 job_dir,
+				 checkpoint_path,
+				 print_f=print,
+				 sequence_length=15,
+				 input_dim=64,
+				 label_set=None,
+				 batch_norm=False
+				 ):
+		super().__init__(config_file, job_dir, checkpoint_path, print_f, sequence_length, input_dim, label_set, batch_norm)
 
-		self.model = None
-		self.feed_dict = None
-		self.X = None
-		self.X_val = None
-		self.y = None
-		self.y_val = None
-		self.eye = np.eye(len(self.label_set))
 
 	def compile(self, **kwargs):
+		self.load_config()
 		self.model = CNN_RNN_Sequential_model(self.print_f, self.sequence_length, self.input_dim, self.label_set)
 		self.model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy', 'mae'], )
 
-	def process_feed_dict(self, feed_dict):
-		self.feed_dict = feed_dict
-		self.X = np.vstack([self.feed_dict[k] for k in self.feed_dict])
-		self.y = np.vstack([np.array([np.array(self.eye[i])] * len(self.feed_dict[k])) for i, k in enumerate(self.feed_dict)])
-		print ('Shape x: {}'.format(self.X.shape))
-		print ('Shape y: {}'.format(self.y.shape))
-
-	def process_data(self, train_dirs, split=0.2):
-
-		X, y, y_raws, label_set = utils.load_dataset(train_dirs, self.label_set, self.sequence_length)
-
-		self.X, self.X_val, self.y, self.y_val = train_test_split(X, y, test_size=split, random_state=42, stratify=y)
-
-		print ('Train Shape x: {}'.format(self.X.shape))
-		print ('Train Shape y: {}'.format(self.y.shape))
-		# print ('Eval Shape x: {}'.format(self.X_test.shape))
-		# print ('Eval Shape y: {}'.format(self.y_test.shape))
-
-	# TODO: feed_dict is data keyed by label
-	def fit(self, train_dirs, batch_size=32, epochs=10, validation_split=0.1, callbacks=None, **kwargs):
-		self.process_data(train_dirs, validation_split)
-		self.model.fit(self.X, self.y,
-					   validation_data=[self.X_val, self.y_val],
-					   batch_size=batch_size, epochs=epochs,
-					   # validation_split=validation_split,
-					  callbacks=callbacks
-					  )
+	# def process_feed_dict(self, feed_dict):
+	# 	self.feed_dict = feed_dict
+	# 	self.X = np.vstack([self.feed_dict[k] for k in self.feed_dict])
+	# 	self.y = np.vstack([np.array([np.array(self.eye[i])] * len(self.feed_dict[k])) for i, k in enumerate(self.feed_dict)])
+	# 	print ('Shape x: {}'.format(self.X.shape))
+	# 	print ('Shape y: {}'.format(self.y.shape))
+	#
+	# def process_data(self, train_dirs, split=0.2):
+	#
+	# 	X, y, y_raws, label_set = utils.load_dataset(train_dirs, self.label_set, self.sequence_length)
+	#
+	# 	self.X, self.X_val, self.y, self.y_val = train_test_split(X, y, test_size=split, random_state=42, stratify=y)
+	#
+	# 	print ('Train Shape x: {}'.format(self.X.shape))
+	# 	print ('Train Shape y: {}'.format(self.y.shape))
+	# 	# print ('Eval Shape x: {}'.format(self.X_test.shape))
+	# 	# print ('Eval Shape y: {}'.format(self.y_test.shape))
+	#
+	# # TODO: feed_dict is data keyed by label
+	# def fit(self, train_dirs, batch_size=32, epochs=10, validation_split=0.1, callbacks=None, **kwargs):
+	# 	self.process_data(train_dirs, validation_split)
+	# 	self.model.fit(self.X, self.y,
+	# 				   validation_data=[self.X_val, self.y_val],
+	# 				   batch_size=batch_size, epochs=epochs,
+	# 				   # validation_split=validation_split,
+	# 				  callbacks=callbacks
+	# 				  )

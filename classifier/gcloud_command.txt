@@ -131,6 +131,16 @@ python3 trainer/train.py --epoch 5 --batch 32 \
         --eval_dirs ../datasets/all5/all5_02_test.npz \
         --job-dir models/all5_bn_densenet \
 
+
+# densenet oncloud
+python3 trainer/train.py --epoch 5 --batch 32 \
+		--classifier densenet \
+        --eval-frequency 1 \
+        --config_file trainer/densenet_config.json \
+        --train_dirs ../datasets/all5/all5_02_train.npz \
+        --eval_dirs ../datasets/all5/all5_02_test.npz \
+        --job-dir models/all5_bn_densenet_augment_3 \
+
 ```
 
 ## Training using gcloud local

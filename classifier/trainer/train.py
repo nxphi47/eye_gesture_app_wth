@@ -9,14 +9,10 @@ import keras
 import numpy as np
 from sklearn.metrics import classification_report, confusion_matrix
 
-# import cnn_rnn_model
-# import resnet_synthetic_gan
+import cnn_rnn_model
+import resnet_synthetic_gan
 # import cnn_rnn_one_shot
 import densenet
-# from . import utils
-# from . import cnn_rnn_model
-# from . import resnet_synthetic_gan
-# from . import cnn_rnn_one_shot
 import utils
 
 LABEL_SET = ['left', 'right', 'up', 'down', 'center', 'double_blink']
@@ -84,6 +80,7 @@ def dispatch(train_dirs,
 			 batch,
 			 split,
 			 eval_frequency,
+			 classifier,
 			 get_zip,
 			 one_shot_freq,
 
@@ -108,6 +105,7 @@ def dispatch(train_dirs,
 	assert os.path.exists(config_file)
 
 	custom_logs = []
+	model_file = None
 	if "gs://" not in job_dir:
 		model_file = open(os.path.join(job_dir, "custom_logs.txt"), 'w')
 
@@ -119,80 +117,30 @@ def dispatch(train_dirs,
 	checkpoint_path = FILE_PATH
 	if not job_dir.startswith("gs://"):
 		checkpoint_path = os.path.join(job_dir, checkpoint_path)
-	# training_feed_dict = load_data_dict(train_dirs, LABEL_SET, SEQUENCE_LENGTH, get_zip=get_zip)
 
-	# eye_model = cnn_rnn_model.CNN_RNN_Sequential_model(print_f, SEQUENCE_LENGTH, INPUT_DIM, LABEL_SET)
-	# eye_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy', 'mae'], )
-	# eye_model = cnn_rnn_model.CNN_RNN_Sequential(print_f, SEQUENCE_LENGTH, INPUT_DIM, LABEL_SET)
-	# eye_model = cnn_rnn_one_shot.CNN_RNN_ONE_SHOT(print_f, SEQUENCE_LENGTH, INPUT_DIM, LABEL_SET)
-	# eye_model.compile(learning_phase=1)
 
-	eye_model = resnet_synthetic_gan.ResNet_RNN_classifier(config_file=config_file,
-														   job_dir=job_dir,
-														   checkpoint_path=checkpoint_path, print_f=print_f,
-														   sequence_length=SEQUENCE_LENGTH,
-														   input_dim=INPUT_DIM,
-														   label_set=LABEL_SET)
-	eye_model = densenet.DenseNet_RNN_classifier(config_file=config_file,
-														   job_dir=job_dir,
-														   checkpoint_path=checkpoint_path, print_f=print_f,
-														   sequence_length=SEQUENCE_LENGTH,
-														   input_dim=INPUT_DIM,
-														   label_set=LABEL_SET)
+	classifier_model = None
+	if classifier == 'resnet':
+		classifier_model = resnet_synthetic_gan.ResNet_RNN_classifier
+	elif classifier == 'densenet':
+		classifier_model = densenet.DenseNet_RNN_classifier
+	elif classifier == 'cnn_rnn':
+		classifier_model = cnn_rnn_model.CNN_RNN_Sequential
+	else:
+		raise ValueError('classifer {} is not valid'.format(classifier))
+
+	eye_model = classifier_model(config_file=config_file,
+								   job_dir=job_dir,
+								   checkpoint_path=checkpoint_path, print_f=print_f,
+								   sequence_length=SEQUENCE_LENGTH,
+								   input_dim=INPUT_DIM,
+								   label_set=LABEL_SET)
 
 	eye_model.compile()
-
-	# exit()
-
-	# Unhappy hack to work around h5py not being able to write to GCS.
-	# Force snapshots and saves to local filesystem, then copy them over to GCS.
-
-	# Model checkpoint callback
-	# checkpoint = keras.callbacks.ModelCheckpoint(
-	# 	checkpoint_path,
-	# 	monitor='val_loss',
-	# 	verbose=1,
-	# 	period=checkpoint_epochs,
-	# 	mode='max')
 
 	# TODO: load data
 	print('Loading data')
 
-	# X, y, y_raws, label_set = load_dataset(train_dirs, LABEL_SET, SEQUENCE_LENGTH, get_zip=get_zip)
-
-	# exit()
-	# evaluation = EvalCheckPoint(eye_model, job_dir, eval_dirs, LABEL_SET, SEQUENCE_LENGTH, eval_freq=eval_frequency,
-	# 							print_func=print_f, epochs=epoch)
-	#
-	# # Tensorboard logs callback
-	# tblog = keras.callbacks.TensorBoard(
-	# 	log_dir=os.path.join(job_dir, 'logs'),
-	# 	histogram_freq=4,
-	# 	write_graph=True,
-	# 	embeddings_freq=0)
-	#
-	# callbacks = [checkpoint,
-	# 			 evaluation,
-	# 			 # tblog
-	# 			 ]
-
-	# FIXME: unused part copied from census
-	# eye_model.fit_generator(
-	# 	model.generator_input(train_files, chunk_size=CHUNK_SIZE),
-	# 	steps_per_epoch=train_steps,
-	# 	epochs=num_epochs,
-	# 	callbacks=callbacks)
-
-	# TODO: fit
-	# eye_model.fit(X, y, batch_size=batch, epochs=epoch, validation_split=split,
-	# 			  callbacks=callbacks
-	# 			  )
-	# eye_model.fit(train_files=train_dirs,
-	# 			  batch_size=batch,
-	# 			  epochs=epoch,
-	# 			  one_shot_freq=one_shot_freq,
-	# 			  validation_split=split,
-	# 			  callbacks=callbacks)
 	eye_model.fit(train_files=train_dirs,
 				  test_files=eval_dirs,
 				  batch_size=batch,
@@ -234,6 +182,8 @@ if __name__ == "__main__":
 
 	parser.add_argument('--get_zip', help='Get zip file instead of folder', action='store_true')
 	parser.set_defaults(get_zip=False)
+
+	parser.add_argument('--classifier', help='select a model', default='cnn_rnn', choices=['cnn_rnn', 'densenet', 'resnet'], required=True)
 
 	parser.add_argument('--epoch', type=int, default=10, help="\nNumber of epochs")
 	parser.add_argument('--batch', type=int, default=32, help="\nNumber in a batch")

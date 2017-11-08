@@ -249,11 +249,4 @@ class EvalCheckPoint(keras.callbacks.Callback):
 				pred_val = np.argmax(self.model.predict(self.X_test), axis=1)
 				K.set_learning_phase(1)
 
-				# if self.batch_norm:
-				# K.set_learning_phase(1)
-				# report = classification_report(self.true_val, pred_val, target_names=self.label_set, digits=4)
-				# matrix = confusion_matrix(self.true_val, pred_val)
-				# self.print_func("----- Epoch:{} -----".format(epoch))
-				# self.print_func(report)
-				# self.print_func(matrix)
 				report(self.true_val, pred_val, self.label_set, print_fn=self.print_func)

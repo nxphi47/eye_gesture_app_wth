@@ -1,3 +1,4 @@
+from __future__ import print_function
 import RPi.GPIO as io
 io.setmode(io.BCM)
 import sys, tty, termios, time

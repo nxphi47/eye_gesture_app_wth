@@ -22,6 +22,7 @@ from sklearn.metrics import confusion_matrix, classification_report
 import json
 import pprint
 import utils
+import base_model
 
 INPUT_DIM = 64
 CHANNEL = 3
@@ -236,7 +237,7 @@ def densenet_sequential_model(config, print_fn=print, sequence_length=15, input_
 	return sequential_model
 
 
-class DenseNet_RNN_classifier():
+class DenseNet_RNN_classifier(base_model.ClassiferModel):
 	def __init__(self,
 				 config_file,
 				 job_dir,
@@ -247,28 +248,13 @@ class DenseNet_RNN_classifier():
 				 label_set=None,
 				 batch_norm=False
 				 ):
-		self.config_file = config_file
-		self.config = None
-		self.job_dir = job_dir
-		self.checkpoint_path = checkpoint_path
-		self.print_f = print_f
-		self.sequence_length = sequence_length
-		self.input_dim = input_dim
-		self.label_set = label_set
-		self.batch_norm = batch_norm
+		super().__init__(config_file, job_dir, checkpoint_path, print_f, sequence_length, input_dim, label_set, batch_norm)
 
-		self.model = None
-		self.feed_dict = None
-		self.X = None
-		self.X_val = None
-		self.y = None
-		self.y_val = None
-		self.eye = np.eye(len(self.label_set))
 
-	def load_config(self):
-		self.config = json.load(open(self.config_file, 'r'))
-		pprint.pprint(self.config)
-		self.batch_norm = self.config['cnn_block']['batch_norm']
+	# def load_config(self):
+	# 	self.config = json.load(open(self.config_file, 'r'))
+	# 	pprint.pprint(self.config)
+	# 	self.batch_norm = self.config['cnn_block']['batch_norm']
 
 	def compile(self, **kwargs):
 		self.load_config()
@@ -282,85 +268,85 @@ class DenseNet_RNN_classifier():
 											   dropout=0.5, batch_norm=self.batch_norm)
 		self.model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy', 'mae'])
 
-	def predict(self, data):
-		if self.batch_norm:
-			K.set_learning_phase(0)
-		result = self.model.predict(data)
-		if self.batch_norm:
-			K.set_learning_phase(1)
-		return result
+	# def predict(self, data):
+	# 	if self.batch_norm:
+	# 		K.set_learning_phase(0)
+	# 	result = self.model.predict(data)
+	# 	if self.batch_norm:
+	# 		K.set_learning_phase(1)
+	# 	return result
 
 	# it will only accept tfrecords files
-	def process_training_data(self, train_files, split=0.15):
-		# FIXME: only accept 1 single file at this momment
-		if isinstance(train_files, (list, tuple)):
-			train_files = train_files[0]
+	# def process_training_data(self, train_files, split=0.15):
+	# 	# FIXME: only accept 1 single file at this momment
+	# 	if isinstance(train_files, (list, tuple)):
+	# 		train_files = train_files[0]
+	#
+	# 	X, y = utils.load_npz(train_files)
+	# 	self.X, self.X_val, self.y, self.y_val = train_test_split(X, y, test_size=split, random_state=42, stratify=y)
+	#
+	# 	print('Train Shape x: {}'.format(self.X.shape))
+	# 	print('Train Shape y: {}'.format(self.y.shape))
+	#
+	# def test_on_trained(self, test_files):
+	# 	if test_files is not None:
+	# 		self.print_f('-- Perform Testing --')
+	# 		if isinstance(test_files, (list, tuple)):
+	# 			test_files = test_files[0]
+	# 		X, y = utils.load_npz(test_files)
+	# 		assert self.model is not None
+	# 		pred_val = np.argmax(self.predict(X), axis=1)
+	# 		true_val = np.argmax(y, axis=1)
+	#
+	# 		utils.report(true_val, pred_val, self.label_set, print_fn=self.print_f)
+	#
+	# 	# save the model
+	# 	# if job_dir.startswith("gs://"):
+	# 	# 	model.save(model_name)
+	# 	# 	copy_file_to_gcs(job_dir, model_name)
+	# 	# else:
+	# 	# 	model.save(os.path.join(job_dir, model_name))
+	# 	model_name = 'eye_final_model.hdf5'
+	# 	self.model.save(os.path.join(self.job_dir, model_name))
+	#
+	# 	# Convert the Keras model to TensorFlow SavedModel
+	# 	self.print_f('Save model to {}'.format(self.job_dir))
+	# 	utils.to_savedmodel(self.model, os.path.join(self.job_dir, 'export'))
 
-		X, y = utils.load_npz(train_files)
-		self.X, self.X_val, self.y, self.y_val = train_test_split(X, y, test_size=split, random_state=42, stratify=y)
-
-		print('Train Shape x: {}'.format(self.X.shape))
-		print('Train Shape y: {}'.format(self.y.shape))
-
-	def test_on_trained(self, test_files):
-		if test_files is not None:
-			self.print_f('-- Perform Testing --')
-			if isinstance(test_files, (list, tuple)):
-				test_files = test_files[0]
-			X, y = utils.load_npz(test_files)
-			assert self.model is not None
-			pred_val = np.argmax(self.predict(X), axis=1)
-			true_val = np.argmax(y, axis=1)
-
-			utils.report(true_val, pred_val, self.label_set, print_fn=self.print_f)
-
-		# save the model
-		# if job_dir.startswith("gs://"):
-		# 	model.save(model_name)
-		# 	copy_file_to_gcs(job_dir, model_name)
-		# else:
-		# 	model.save(os.path.join(job_dir, model_name))
-		model_name = 'eye_final_model.hdf5'
-		self.model.save(os.path.join(self.job_dir, model_name))
-
-		# Convert the Keras model to TensorFlow SavedModel
-		self.print_f('Save model to {}'.format(self.job_dir))
-		utils.to_savedmodel(self.model, os.path.join(self.job_dir, 'export'))
-
-	def fit(self, train_files, test_files=None, batch_size=32, epochs=10, validation_split=0.1, callbacks=None,
-			**kwargs):
-		self.process_training_data(train_files, split=validation_split)
-
-		if callbacks is None:
-			callbacks = [
-				keras.callbacks.ModelCheckpoint(
-					filepath=self.checkpoint_path,
-					monitor='val_loss',
-					verbose=1,
-					period=kwargs.get('checkpoint_epochs', 2),
-					mode='max'),
-				TerminateOnNaN(),
-				EarlyStopping(patience=10),
-				ReduceLROnPlateau(patience=4),
-				utils.EvalCheckPoint(self.model,
-									 self.checkpoint_path,
-									 self.X_val,
-									 self.y_val,
-									 self.label_set,
-									 self.sequence_length,
-									 eval_freq=kwargs.get('eval_freq', 1),
-									 print_func=self.print_f,
-									 epochs=epochs,
-									 batch_norm=self.batch_norm
-									 )
-
-			]
-
-		self.model.fit(self.X, self.y, batch_size=batch_size, epochs=epochs,
-					   validation_data=[self.X_val, self.y_val], callbacks=callbacks)
-
-		self.print_f('--Training Done--')
-		self.test_on_trained(test_files=test_files)
+	# def fit(self, train_files, test_files=None, batch_size=32, epochs=10, validation_split=0.1, callbacks=None,
+	# 		**kwargs):
+	# 	self.process_training_data(train_files, split=validation_split)
+	#
+	# 	if callbacks is None:
+	# 		callbacks = [
+	# 			keras.callbacks.ModelCheckpoint(
+	# 				filepath=self.checkpoint_path,
+	# 				monitor='val_loss',
+	# 				verbose=1,
+	# 				period=kwargs.get('checkpoint_epochs', 2),
+	# 				mode='max'),
+	# 			TerminateOnNaN(),
+	# 			EarlyStopping(patience=10),
+	# 			ReduceLROnPlateau(patience=4),
+	# 			utils.EvalCheckPoint(self.model,
+	# 								 self.checkpoint_path,
+	# 								 self.X_val,
+	# 								 self.y_val,
+	# 								 self.label_set,
+	# 								 self.sequence_length,
+	# 								 eval_freq=kwargs.get('eval_freq', 1),
+	# 								 print_func=self.print_f,
+	# 								 epochs=epochs,
+	# 								 batch_norm=self.batch_norm
+	# 								 )
+	#
+	# 		]
+	#
+	# 	self.model.fit(self.X, self.y, batch_size=batch_size, epochs=epochs,
+	# 				   validation_data=[self.X_val, self.y_val], callbacks=callbacks)
+	#
+	# 	self.print_f('--Training Done--')
+	# 	self.test_on_trained(test_files=test_files)
 
 
 if __name__ == '__main__':

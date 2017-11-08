@@ -13,9 +13,11 @@ IP_ADDRESS = '192.168.0.'
 car = None
 
 TURN_DELAY = 0.7
+CURRENT_LABEL = ''
 
 def response_label(car, response):
 	global TURN_DELAY
+	global CURRENT_LABEL
 	label = response.get('label')
 
 	if label == 'left':
@@ -27,6 +29,10 @@ def response_label(car, response):
 		if car.state != 'stop':
 			car.turn_right()
 	elif label == 'double_blink':
+		if CURRENT_LABEL == 'double_blink':
+			# double label
+			# do nothing
+			return
 		if car.state == 'forward':
 			car.stop()
 		else:
@@ -37,6 +43,8 @@ def response_label(car, response):
 			car.stop()
 		else:
 			car.forward()
+
+	CURRENT_LABEL = label
 	#
 	# if label == 'up':
 	# 	if car.state == 'stop':
