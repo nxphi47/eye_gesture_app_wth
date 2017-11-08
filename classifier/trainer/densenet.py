@@ -237,7 +237,7 @@ def densenet_sequential_model(config, print_fn=print, sequence_length=15, input_
 	return sequential_model
 
 
-class DenseNet_RNN_classifier(base_model.ClassiferModel):
+class DenseNet_RNN_classifier(base_model.ClassiferKerasModel):
 	def __init__(self,
 				 config_file,
 				 job_dir,

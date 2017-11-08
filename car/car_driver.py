@@ -1,7 +1,7 @@
 from __future__ import print_function
 import RPi.GPIO as io
 io.setmode(io.BCM)
-import sys, tty, termios, time
+import time
 
 
 # FIXME: enable PWM
@@ -105,15 +105,22 @@ class Driver():
 
 if __name__ == '__main__':
 	car = Driver()
-	time.sleep(0.5)
-	car.stop()
-	# time.sleep(0.5)
-	car.forward()
-	time.sleep(1)
-	car.reverse()
-	time.sleep(1)
-	car.turn_left()
-	time.sleep(1)
-	car.turn_right()
-	time.sleep(1)
-	car.stop()
+
+	try:
+
+		time.sleep(0.5)
+		car.stop()
+		# time.sleep(0.5)
+		car.forward()
+		time.sleep(1)
+		car.reverse()
+		time.sleep(1)
+		car.turn_left()
+		time.sleep(1)
+		car.turn_right()
+		time.sleep(1)
+		car.stop()
+	except:
+		car.cleanup()
+	finally:
+		car.cleanup()

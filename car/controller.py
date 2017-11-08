@@ -124,10 +124,11 @@ def main():
 	# get_url()
 	global IP_ADDRESS
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--ip', help='Epoch Ip address of headset', type=str, required=True)
+	parser.add_argument('--ip', help='Epoch Ip address of headset', type=str, required=True, default='192.168.43.165')
 	args = parser.parse_args()
 
 	IP_ADDRESS = args.ip
+	print 'IP {}'.format(IP_ADDRESS)
 	control_loop()
 
 if __name__ == '__main__':

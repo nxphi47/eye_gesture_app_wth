@@ -22,31 +22,36 @@ import base_model
 
 
 # Convolutional blocks
-def add_conv_layer(model, filters, kernel_size, use_bias, activation='relu', pooling='max_pool', batch_norm=False,
-				   input_shape=False, padding='valid', dropout=0.0):
-	if input_shape:
-		model.add(Conv2D(input_shape=input_shape, filters=filters, kernel_size=(kernel_size, kernel_size),
-						 padding=padding,
-						 use_bias=use_bias))
-	else:
-		model.add(Conv2D(filters=filters, kernel_size=(kernel_size, kernel_size),
-						 padding=padding,
-						 use_bias=use_bias))
+def add_conv_layer(model, filters, kernel_size, conv_num=1, use_bias=False, activation='relu', pooling=None, batch_norm=False,
+				   input_shape=False, padding='valid', dropout=0.0, stride=1):
 
-	if batch_norm:
-		# conv = BatchNormalization()(conv)
-		model.add(BatchNormalization())
-	if activation and activation != '':
-		# conv = Activation(activation)(conv)
-		model.add(Activation(activation))
-	if pooling == 'max_pool':
-		# conv = MaxPooling2D()(conv)
-		model.add(MaxPooling2D())
-	elif pooling == 'avg_pool':
-		# conv = AveragePooling2D()(conv)
-		model.add(AveragePooling2D())
-	else:
-		raise Exception('Pooling invalid: {}'.format(pooling))
+	for i in range(conv_num):
+
+		if input_shape and i == 0:
+			model.add(Conv2D(input_shape=input_shape, filters=filters, kernel_size=(kernel_size, kernel_size),
+							 padding=padding,strides=[stride, stride],
+							 use_bias=use_bias))
+		else:
+			model.add(Conv2D(filters=filters, kernel_size=(kernel_size, kernel_size),
+							 padding=padding, strides=[stride, stride],
+							 use_bias=use_bias))
+
+		if batch_norm:
+			# conv = BatchNormalization()(conv)
+			model.add(BatchNormalization())
+		if activation and activation != '':
+			# conv = Activation(activation)(conv)
+			model.add(Activation(activation))
+
+		if pooling == 'max_pool':
+			# conv = MaxPooling2D()(conv)
+			model.add(MaxPooling2D())
+		elif pooling == 'avg_pool':
+			# conv = AveragePooling2D()(conv)
+			model.add(AveragePooling2D())
+		else:
+			# raise Exception('Pooling invalid: {}'.format(pooling))
+			print('no pooling')
 
 	if 0.0 < dropout < 1.0:
 		model.add(Dropout(dropout))
@@ -57,19 +62,30 @@ def add_conv_layer(model, filters, kernel_size, use_bias, activation='relu', poo
 def CNN_block(input_shape, print_fn=print):
 	use_bias = False
 	batch_norm = True
-	pooling = 'max_pool'
+	# pooling = 'max_pool'
+	pooling = None
+	padding = 'valid'
 	conv_dropout = -1
 
 	model = Sequential()
 
-	model = add_conv_layer(model, filters=8, kernel_size=4, use_bias=use_bias, pooling=pooling, batch_norm=batch_norm,
+	model = add_conv_layer(model,
+						   filters=16,
+						   conv_num=2,
+						   kernel_size=4,
+						   stride=1,
+						   use_bias=use_bias,
+						   padding=padding,
+						   pooling=pooling, batch_norm=batch_norm,
 						   input_shape=input_shape, dropout=conv_dropout)
 
 	# model = add_conv_layer(model, filters=8, kernel_size=3,
 	# 					   use_bias=use_bias, pooling=pooling,
 	# 					   batch_norm=batch_norm, dropout=conv_dropout)
 
-	model = add_conv_layer(model, filters=16, kernel_size=3,
+	model = add_conv_layer(model, filters=16, kernel_size=4, conv_num=2,
+						   padding=padding,
+						   stride=2,
 						   use_bias=use_bias, pooling=pooling,
 						   batch_norm=batch_norm, dropout=conv_dropout)
 
@@ -77,20 +93,24 @@ def CNN_block(input_shape, print_fn=print):
 	# 					   use_bias=use_bias, pooling=pooling,
 	# 					   batch_norm=batch_norm, dropout=conv_dropout)
 
-	model = add_conv_layer(model, filters=32, kernel_size=3,
+	model = add_conv_layer(model, filters=16, kernel_size=4, conv_num=2,
+						   padding=padding,
+						   stride=1,
 						   use_bias=use_bias, pooling=pooling,
 						   batch_norm=batch_norm, dropout=conv_dropout)
 
-	model = add_conv_layer(model, filters=64, kernel_size=3,
-						   use_bias=use_bias, pooling=pooling,
-						   batch_norm=batch_norm, dropout=conv_dropout)
+	# model = add_conv_layer(model, filters=32, kernel_size=3, conv_num=2,
+	# 					   padding=padding,
+	# 					   stride=1,
+	# 					   use_bias=use_bias, pooling=pooling,
+	# 					   batch_norm=batch_norm, dropout=conv_dropout)
 
 	# 4x4x64
 
 	# flatten = Flatten()(conv)
 	model.add(Flatten())
 
-	model.add(Dense(64,))
+	model.add(Dense(32,))
 	if batch_norm:
 		model.add(BatchNormalization())
 	model.add(Activation(activation='relu'))
@@ -125,14 +145,14 @@ def CNN_RNN_Sequential_model(print_f=print,
 
 	timedistributed = TimeDistributed(CNN_block(cnn_input_shape, print_fn=print_f))(preprocess)
 
-	feed_input = Bidirectional(LSTM(units=64))(timedistributed)
+	feed_input = Bidirectional(LSTM(units=32))(timedistributed)
 
 	# dropout = Dropout(0.4)(lstm)
-	feed_input = Dense(32)(feed_input)
-
-	if batch_norm:
-		feed_input = BatchNormalization()(feed_input)
-	feed_input = Activation('relu')(feed_input)
+	# feed_input = Dense(32)(feed_input)
+	#
+	# if batch_norm:
+	# 	feed_input = BatchNormalization()(feed_input)
+	# feed_input = Activation('relu')(feed_input)
 	# dropout = Dropout(0.2)(dense)
 
 	out_layer = Dense(len(label_set), activation='softmax')(feed_input)
@@ -147,7 +167,7 @@ def CNN_RNN_Sequential_model(print_f=print,
 	return model
 
 
-class CNN_RNN_Sequential(base_model.ClassiferModel):
+class CNN_RNN_Sequential(base_model.ClassiferKerasModel):
 	def __init__(self,
 				 config_file,
 				 job_dir,
@@ -163,6 +183,7 @@ class CNN_RNN_Sequential(base_model.ClassiferModel):
 
 	def compile(self, **kwargs):
 		self.load_config()
+		K.set_learning_phase(1)
 		self.model = CNN_RNN_Sequential_model(self.print_f, self.sequence_length, self.input_dim, self.label_set)
 		self.model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy', 'mae'], )
 
