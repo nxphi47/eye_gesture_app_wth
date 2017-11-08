@@ -132,7 +132,7 @@ def CNN_RNN_Sequential_model(print_f=print,
 
 	if batch_norm:
 		feed_input = BatchNormalization()(feed_input)
-	feed_input = Activation('relu')
+	feed_input = Activation('relu')(feed_input)
 	# dropout = Dropout(0.2)(dense)
 
 	out_layer = Dense(len(label_set), activation='softmax')(feed_input)
