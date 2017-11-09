@@ -133,13 +133,14 @@ python3 trainer/train.py --epoch 5 --batch 32 \
 
 
 # densenet oncloud
-python3 trainer/train.py --epoch 30 --batch 32 \
+python3 trainer/train.py --epoch 20 --batch 64 \
 		--classifier densenet \
+		--checkpoint_epochs 1 \
         --eval-frequency 1 \
         --config_file trainer/densenet_config.json \
         --train_dirs ../datasets/all5_augment_015/all5_augment_015_train.npz \
         --eval_dirs ../datasets/all5_augment_015/all5_augment_015_test.npz \
-        --job-dir models/all5_bn_densenet_augment_1 \
+        --job-dir models/all5_densenet_augment_small_2 \
 
 
 # resnet oncloud
@@ -165,7 +166,7 @@ python3 trainer/train.py --epoch 10 --batch 64 \
 
 # test on mac cnn_rnn
 python3 trainer/train.py --epoch 1 --batch 32 \
-		--classifier cnn_rnn \
+		--classifier densenet \
         --eval-frequency 1 \
         --checkpoint_epochs 1 \
         --config_file trainer/densenet_config.json \
