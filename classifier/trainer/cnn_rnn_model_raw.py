@@ -363,25 +363,74 @@ class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 		self.load_config()
 		self.model_ops = cnn_rnn_sequential()
 
-	def predict(self, data):
+	def _run_session_pred(self, requireds, feed_dict, batch_size=32):
+		# assert isinstance(requireds, (list, tuple))
+		assert self.model_ops is not None
+		assert self.session is not None
+
+		return self.session.run(requireds, feed_dict=feed_dict)
+
+	def	_predict_batch(self, data):
+		return self._run_session_pred(requireds=self.model_ops['outputs'], feed_dict={
+					self.model_ops['inputs']: data,
+					self.model_ops['training']: False
+				})
+
+	def predict(self, data, batch_size=32):
 		# super().predict(data)
 		assert self.model_ops is not None
 		assert self.session is not None
+		if len(data) <= batch_size:
+			return self._predict_batch(data)
 
-		return self.session.run(self.model_ops['outputs'], feed_dict={
-			self.model_ops['inputs']: data,
-			self.model_ops['training']: False
-		})
+		steps = len(data) // batch_size - 1
 
-	def eval(self, data, labels):
+		results = []
+		for i in range(steps):
+			d = self._predict_batch(data[i * batch_size:(i + 1) * batch_size])
+			results.append(d)
+		d = self._predict_batch(data[steps * batch_size:])
+		results.append(d)
+
+		results = np.concatenate(results)
+		print(results.shape)
+		return results
+
+	def _eval_batch(self, required, data, labels):
+		return self._run_session_pred(requireds=required, feed_dict={
+				self.model_ops['inputs']: data,
+				self.model_ops['labels']: labels,
+				self.model_ops['training']: False
+			})
+
+	def eval(self, data, labels, batch_size=64, required=None):
 		assert self.model_ops is not None
 		assert self.session is not None
 
-		return self.session.run([self.model_ops['outputs'], self.model_ops['loss'], self.model_ops['summaries']], feed_dict={
-			self.model_ops['inputs']: data,
-			self.model_ops['labels']: labels,
-			self.model_ops['training']: False
-		})
+		if required is None:
+			required = (self.model_ops['outputs'], [self.model_ops['accuracy'], self.model_ops['loss']])
+
+		if len(data) <= batch_size:
+			return self._eval_batch(required, data, labels)
+
+		steps = len(data) // batch_size - 1
+
+		preds = []
+		metrics = []
+		for i in range(steps):
+			p, m = self._eval_batch(required, data[i * batch_size:(i + 1) * batch_size], labels[i * batch_size:(i + 1) * batch_size],)
+			preds.append(p)
+			metrics.append(np.array(m))
+
+		p, m = self._eval_batch(required, data[steps * batch_size:], labels[steps * batch_size:] )
+
+		preds.append(p)
+		# metrics.append(m)
+		preds = np.concatenate(preds)
+		print(preds.shape)
+		metrics = np.mean(np.array(metrics), axis=0)
+		print(metrics.shape)
+		return preds, metrics
 
 	def test_on_trained(self, test_files):
 		if test_files is not None:
@@ -396,13 +445,6 @@ class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 			true_val = np.argmax(y, axis=1)
 
 			utils.report(true_val, pred_val, self.label_set, print_fn=self.print_f)
-
-
-
-		# model_name = 'eye_final_model.hdf5'
-		# self.model.save(os.path.join(self.job_dir, model_name))
-		#
-		# # Convert the Keras model to TensorFlow SavedModel
 		self.print_f('Save model to {}'.format(self.job_dir))
 		# utils.to_savedmsesodel(self.model, os.path.join(self.job_dir, 'export'))
 		utils.session_to_savedmodel(self.session, self.model_ops['inputs'], self.model_ops['outputs'], os.path.join(self.job_dir, 'export'))
@@ -418,6 +460,7 @@ class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 			utils.report(self.true_val, pred_val, self.label_set, print_fn=self.print_f)
 			self.tfboard_test_writer.add_summary(summaries, epoch)
 
+
 	def mid_eval(self, epoch, step, **kwargs):
 		assert self.session is not None
 		sum_step = kwargs['steps'] * epoch + step
@@ -430,18 +473,25 @@ class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 		self.tfboard_train_writer.add_summary(kwargs['train_summaries'], sum_step)
 
 		# if epoch > 0 and (epoch % kwargs.get('eval_freq', 4) == 0 or epoch == kwargs.get('epochs', 15)):
-		self.test_size = 500
-		if len(self.X_val) < self.test_size:
-			self.test_size = len(self.X_val)
+		# self.test_size = 500
+		# if len(self.X_val) < self.test_size:
+		# 	self.test_size = len(self.X_val)
+		#
+		# self.test_idx = np.arange(0, self.test_size)
+		# np.random.shuffle(self.test_idx)
+		data = self.X_val
+		# data = self.X_val[self.test_idx]
+		# labels = self.y_val[self.test_idx]
+		labels = self.y_val
 
-		self.test_idx = np.arange(0, self.test_size)
-		np.random.shuffle(self.test_idx)
-		data = self.X_val[self.test_idx]
-		labels = self.y_val[self.test_idx]
+		preds, metrics = self.eval(data, labels)
+		print(metrics)
+		loss = metrics[1]
+		acc = metrics[0]
+		summaries = tf.Summary()
+		summaries.value.add(tag="accuracy_scalar", simple_value=acc)
+		summaries.value.add(tag="loss_scalar", simple_value=loss)
 
-		preds, loss, summaries = self.eval(data, labels)
-		# print('{} pred shape'.format(preds.shape))
-		# print('{} label shape'.format(labels.shape))
 		pred_val = np.argmax(preds, axis=1)
 		self.true_val = np.argmax(labels, axis=1)
 

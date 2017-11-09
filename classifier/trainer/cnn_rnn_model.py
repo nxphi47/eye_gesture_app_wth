@@ -161,7 +161,7 @@ def CNN_RNN_Sequential_model(print_f=print,
 	out_layer = Dense(len(label_set), activation='softmax')(feed_input)
 
 	model = Model(inputs=inputs, outputs=out_layer)
-
+	model.predict()
 	# CNN model
 	print_f('-----------  CNN sequential model -----------------')
 	model.summary(print_fn=print_f)
