@@ -80,6 +80,7 @@ def conv_layer(training,
 									  kernel_size=[kernel_size] * 2,
 									  strides=[stride] * 2, padding=padding,
 									  use_bias=use_bias,
+									  data_format='channels_last',
 									  kernel_initializer=tf.contrib.layers.xavier_initializer(),
 									  name='{}_conv_{}'.format(name, i)
 									  )
@@ -414,6 +415,13 @@ class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 		self.tfboard_train_writer.add_summary(kwargs['train_summaries'], sum_step)
 
 		# if epoch > 0 and (epoch % kwargs.get('eval_freq', 4) == 0 or epoch == kwargs.get('epochs', 15)):
+
+		assert self.session is not None
+		sum_step = kwargs['steps'] * epoch + step
+		self.tfboard_train_writer.add_summary(kwargs['train_summaries'], sum_step)
+
+		# if epoch > 0 and (epoch % kwargs.get('eval_freq', 4) == 0 or epoch == kwargs.get('epochs', 15)):
+
 		preds, summaries = self.eval(self.X_val, self.y_val)
 		pred_val = np.argmax(preds, axis=1)
 
