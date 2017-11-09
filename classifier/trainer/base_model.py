@@ -208,7 +208,7 @@ class ClassiferKerasModel(ClassiferTfModel):
 				TensorBoard(log_dir=self.job_dir,
 							histogram_freq=1,
 							batch_size=batch_size,
-							write_grads=True,),
+							),
 				utils.EvalCheckPoint(self.model,
 									 self.job_dir,
 									 self.X_val,
