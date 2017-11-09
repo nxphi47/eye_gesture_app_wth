@@ -367,6 +367,15 @@ class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 	def eval(self, data, labels):
 		assert self.model_ops is not None
 		assert self.session is not None
+		self.test_size = 500
+		if len(data) < self.test_size:
+			self.test_size = len(data)
+
+		self.test_idx = np.arange(0, self.test_size)
+		np.random.shuffle(self.test_idx)
+		data = data[self.test_idx]
+		labels = labels[self.test_idx]
+
 
 		return self.session.run([self.model_ops['outputs'], self.model_ops['summaries']], feed_dict={
 			self.model_ops['inputs']: data,
