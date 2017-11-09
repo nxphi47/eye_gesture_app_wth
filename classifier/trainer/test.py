@@ -77,13 +77,17 @@ def dispatch(eval_files, model_file):
 		#
 		# print(eye_model.predict(np.array([X[0]])))
 		#
-		s = time.time()
 
 		# preds = eye_model.predict(X)
-		pred_val = sess.run(predictions, feed_dict={inputs: X, training: False})
-		true_val = np.argmax(y, axis=1)
-		utils.report(true_val, pred_val, LABEL_SET)
-		print('Time: {}'.format(time.time() - s))
+
+		# pred_val = sess.run(predictions, feed_dict={inputs: X, training: False})
+		# true_val = np.argmax(y, axis=1)
+		# utils.report(true_val, pred_val, LABEL_SET)
+
+		s = time.time()
+		pred_val = sess.run(predictions, feed_dict={inputs: [X[0]], training: False})
+		print('Single Time: {}'.format(time.time() - s))
+
 
 
 	# eye_model.end_train()

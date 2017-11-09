@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import argparse
+import tensorflow as tf
 
 import keras.backend as K
 import numpy as np
 from flask import Flask, jsonify
 from flask_cors import CORS
 from keras.models import load_model
+from tensorflow.python.saved_model import tag_constants, signature_constants
+
+import time
 
 import camera
 
@@ -23,6 +27,7 @@ EPOCH = 10
 BATCH = 32
 SPLIT = 0.2
 FRAMERATE = 15
+
 model = None
 query = None
 result = None
@@ -30,6 +35,49 @@ pi_camera = None
 
 app = Flask(__name__)
 cors = CORS(app)
+
+class TfModel():
+	def __init__(self):
+		self.export_path = None
+		self.time = time.time()
+		self.session = None
+
+		self.inputs = None
+		self.outputs = None
+		self.training = None
+		self.predictions = None
+
+	def clear_session(self):
+		if self.session is not None:
+			self.session.close()
+			self.session = None
+
+	def __delete__(self, instance):
+		self.clear_session()
+
+	def predict(self, data):
+		if len(data.shape) < 5:
+			data = np.array([data])
+		assert self.session is not None
+		assert self.inputs is not None
+		assert self.outputs is not None
+		assert self.training is not None
+
+		return self.session.run(self.outputs, feed_dict={self.inputs: data, self.training: False})
+
+
+	def load_model(self, export_path):
+		self.export_path = export_path
+		self.time = time.time()
+		print('Loading model')
+		self.session = tf.Session(graph=tf.Graph())
+		tf.saved_model.loader.load(self.session, [tag_constants.SERVING], self.export_path)
+		self.inputs = self.session.graph.get_tensor_by_name('inputs:0')
+		self.outputs = self.session.graph.get_tensor_by_name('outputs:0')
+		self.training = self.session.graph.get_tensor_by_name('training:0')
+		self.predictions = self.session.graph.get_tensor_by_name('predictions:0')
+
+
 
 
 def normalize_image(img):
@@ -147,11 +195,13 @@ def load_cnn_model(model_name):
 	# model_name = MODEL_NAME
 	# model_name = files[-1]
 
-	print("open filename: {}".format(model_name))
-	K.set_learning_phase(1)
-	model = load_model('{}{}.h5'.format(model_dir, model_name))
-	K.set_learning_phase(0)
+	# print("open filename: {}".format(model_name))
+	# K.set_learning_phase(1)
+	# model = load_model('{}{}.h5'.format(model_dir, model_name))
+	# K.set_learning_phase(0)
 
+	model = TfModel()
+	model.load_model(model_name)
 
 	print("Finish load model with learning phase 0")
 
@@ -180,6 +230,8 @@ def main():
 		if pi_camera is not None:
 			pi_camera.stop_preview()
 			pi_camera.destroy()
+		if model is not None:
+			model.clear_session()
 		exit()
 	# app.run(host='0.0.0.0', port=3000, debug=False)
 

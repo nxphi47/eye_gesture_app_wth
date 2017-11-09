@@ -324,6 +324,9 @@ class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 		self.eval_loss_max = 10000
 		self.eval_loss_max_count = self.learning_rate_tolerance
 
+		self.early_stopping = kwargs.get('early_stopping', 20)
+
+
 
 	def load_model_from_savedmodel(self, export_path):
 		self.compile()
@@ -463,6 +466,7 @@ class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 
 	def mid_eval(self, epoch, step, **kwargs):
 		assert self.session is not None
+		self.print_f('--- Start eval ---')
 		sum_step = kwargs['steps'] * epoch + step
 		self.tfboard_train_writer.add_summary(kwargs['train_summaries'], sum_step)
 
