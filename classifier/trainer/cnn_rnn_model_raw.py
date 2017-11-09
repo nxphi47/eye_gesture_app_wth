@@ -205,7 +205,6 @@ def bi_lstm(training,
 	return inputs[-1], shape
 
 
-
 def cnn_rnn_sequential(**kwargs):
 	input_shape = [None, 15, 64, 64, 3]
 	inputs = tf.placeholder(tf.float32, shape=input_shape, name='inputs')
@@ -248,7 +247,6 @@ def cnn_rnn_sequential(**kwargs):
 	with tf.control_dependencies(update_ops):
 		train_op = optimizer.minimize(loss)
 
-
 	return {
 		'inputs': inputs,
 		'training': training,
@@ -260,6 +258,7 @@ def cnn_rnn_sequential(**kwargs):
 		'optimizer': optimizer,
 		'train_op': train_op
 	}
+
 
 class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 	def __init__(self, config_file, job_dir, checkpoint_path, print_f=print, sequence_length=15, input_dim=64,

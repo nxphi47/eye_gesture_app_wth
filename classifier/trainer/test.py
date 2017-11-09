@@ -1,7 +1,7 @@
-from __future__ import print_function
-from __future__ import division
+# from __future__ import print_function
+# from __future__ import division
 
-import tensorflow as tf
+import tensorflow
 import keras
 import keras.backend as K
 import numpy as np
@@ -24,7 +24,7 @@ def dispatch(eval_files, model_file):
 
 
 	K.set_learning_phase(1)
-	eye_model = load_model(model_file, custom_objects={"tf": tf})
+	eye_model = load_model(model_file, custom_objects={"tf": tensorflow})
 	print('finish loading model')
 
 

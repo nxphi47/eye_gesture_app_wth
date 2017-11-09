@@ -22,7 +22,9 @@ import base_model
 
 
 # Convolutional blocks
-def add_conv_layer(model, filters, kernel_size, conv_num=1, use_bias=False, activation='relu', pooling=None, batch_norm=False,
+def add_conv_layer(model, filters, kernel_size,
+				   conv_num=1, use_bias=False,
+				   activation='relu', pooling=None, batch_norm=False,
 				   input_shape=False, padding='valid', dropout=0.0, stride=1):
 
 	for i in range(conv_num):
@@ -137,8 +139,9 @@ def CNN_RNN_Sequential_model(print_f=print,
 	batch_norm = True
 
 	# inputs = Input(shape=(config.SEQUENCE_LENGTH, config.INPUT_DIM, config.INPUT_DIM, config.CHANNEL))
+
 	inputs = Input(shape=(sequence_length, input_dim, input_dim, 3))
-	preprocess = Lambda(lambda x: tf.divide(tf.subtract(tf.cast(x, tf.float32), 127.5), 127.5))(inputs)
+	preprocess = Lambda(lambda x: (x - 127.5) / 127.5)(inputs)
 	# preprocess = inputs
 
 	cnn_input_shape = (input_dim, input_dim, 3)

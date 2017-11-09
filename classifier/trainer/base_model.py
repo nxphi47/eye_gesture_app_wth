@@ -1,26 +1,19 @@
 """
 This is general model
 """
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
 
-import tensorflow as tf
-import numpy as np
+import json
+import os
+import pprint
+
 import keras
 import keras.backend as K
-from keras.models import Model
-import os
-from keras.layers import Input, Conv2D, Dense, BatchNormalization, Activation, Add, MaxPooling2D, Concatenate, \
-	AveragePooling2D, Lambda, Flatten, TimeDistributed, Bidirectional, LSTM, Dropout, Multiply, \
-	Subtract, multiply, subtract, division, GlobalAveragePooling2D
-from keras.initializers import VarianceScaling
-from keras.regularizers import l2
-from keras.callbacks import TerminateOnNaN, EarlyStopping, ReduceLROnPlateau
-
+import numpy as np
+from keras.callbacks import TerminateOnNaN, EarlyStopping, ReduceLROnPlateau, TensorBoard
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix, classification_report
-import json
-import pprint
+
 import utils
 
 INPUT_DIM = 64
@@ -212,6 +205,10 @@ class ClassiferKerasModel(ClassiferTfModel):
 				TerminateOnNaN(),
 				EarlyStopping(patience=10),
 				ReduceLROnPlateau(patience=4),
+				TensorBoard(log_dir=self.checkpoint_path,
+							histogram_freq=1,
+							batch_size=batch_size,
+							write_grads=True,),
 				utils.EvalCheckPoint(self.model,
 									 self.checkpoint_path,
 									 self.X_val,

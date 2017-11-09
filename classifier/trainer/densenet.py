@@ -215,10 +215,11 @@ def densenet_sequential_model(config, print_fn=print, sequence_length=15, input_
 
 	# inputs = Input(shape=(config.SEQUENCE_LENGTH, config.INPUT_DIM, config.INPUT_DIM, config.CHANNEL))
 	inputs = Input(shape=(sequence_length, input_dim, input_dim, 3))
+	preprocess = Lambda(lambda x: (x - 127.5) / 127.5)(inputs)
 
 	cnn_input_shape = (input_dim, input_dim, 3)
 
-	timedistributed = TimeDistributed(DenseNet(img_dim=cnn_input_shape, print_fn=print_fn, **config['cnn_block']))(inputs)
+	timedistributed = TimeDistributed(DenseNet(img_dim=cnn_input_shape, print_fn=print_fn, **config['cnn_block']))(preprocess)
 
 	feed_input = Bidirectional(LSTM(**config['LSTM']))(timedistributed)
 	# dropout = Dropout(0.4)(lstm)
