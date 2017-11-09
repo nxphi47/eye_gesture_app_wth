@@ -367,15 +367,6 @@ class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 	def eval(self, data, labels):
 		assert self.model_ops is not None
 		assert self.session is not None
-		self.test_size = 500
-		if len(data) < self.test_size:
-			self.test_size = len(data)
-
-		self.test_idx = np.arange(0, self.test_size)
-		np.random.shuffle(self.test_idx)
-		data = data[self.test_idx]
-		labels = labels[self.test_idx]
-
 
 		return self.session.run([self.model_ops['outputs'], self.model_ops['summaries']], feed_dict={
 			self.model_ops['inputs']: data,
@@ -431,11 +422,20 @@ class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 
 		# if epoch > 0 and (epoch % kwargs.get('eval_freq', 4) == 0 or epoch == kwargs.get('epochs', 15)):
 
-		preds, summaries = self.eval(self.X_val, self.y_val)
+		self.test_size = 500
+		if len(self.X_val) < self.test_size:
+			self.test_size = len(self.X_val)
+
+		self.test_idx = np.arange(0, self.test_size)
+		np.random.shuffle(self.test_idx)
+		data = self.X_val[self.test_idx]
+		labels = self.y_val[self.test_idx]
+
+		preds, summaries = self.eval(data, labels)
 		pred_val = np.argmax(preds, axis=1)
 
-		if self.true_val is None:
-			self.true_val = np.array(np.argmax(self.y_val, axis=1))
+		# if self.true_val is None:
+		self.true_val = np.array(np.argmax(labels, axis=1))
 		utils.report(self.true_val, pred_val, self.label_set, epoch=sum_step, print_fn=self.print_f)
 		self.tfboard_test_writer.add_summary(summaries, sum_step)
 
