@@ -69,6 +69,8 @@ class ClassiferTfModel():
 
 		print('Train Shape x: {}'.format(self.X.shape))
 		print('Train Shape y: {}'.format(self.y.shape))
+		print('Eval Shape X: {}'.format(self.X_val.shape))
+		print('Eval Shape y: {}'.format(self.y_val.shape))
 
 	def test_on_trained(self, test_files):
 		# if test_files is not None:
