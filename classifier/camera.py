@@ -6,9 +6,6 @@ try :
 except ImportError:
 	print('PiCamera is not present, ignore this message if you are not in Raspberry Pi')
 
-from PIL import Image, ImageOps
-
-
 def normalize_image(img):
 	# return (img - 127.5) / 127.5
 	return (img.astype(np.float32) - 127.5) / 127.5

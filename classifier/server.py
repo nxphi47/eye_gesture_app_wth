@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 from flask import Flask, jsonify
 from flask_cors import CORS
-from tensorflow.python.saved_model import tag_constants, signature_constants
+from tensorflow.python.saved_model import tag_constants
 
 import time
 
