@@ -11,6 +11,7 @@ from sklearn.metrics import classification_report, confusion_matrix
 
 import cnn_rnn_model
 import resnet_synthetic_gan
+import cnn_rnn_model_raw
 # import cnn_rnn_one_shot
 import densenet
 import utils
@@ -126,6 +127,9 @@ def dispatch(train_dirs,
 		classifier_model = densenet.DenseNet_RNN_classifier
 	elif classifier == 'cnn_rnn':
 		classifier_model = cnn_rnn_model.CNN_RNN_Sequential
+	elif classifier == 'cnn_rnn_raw':
+		classifier_model = cnn_rnn_model_raw.CNN_RNN_Sequential_raw
+
 	else:
 		raise ValueError('classifer {} is not valid'.format(classifier))
 
@@ -183,7 +187,7 @@ if __name__ == "__main__":
 	parser.add_argument('--get_zip', help='Get zip file instead of folder', action='store_true')
 	parser.set_defaults(get_zip=False)
 
-	parser.add_argument('--classifier', help='select a model', default='cnn_rnn', choices=['cnn_rnn', 'densenet', 'resnet'], required=True)
+	parser.add_argument('--classifier', help='select a model', default='cnn_rnn', choices=['cnn_rnn', 'cnn_rnn_raw', 'densenet', 'resnet'], required=True)
 
 	parser.add_argument('--epoch', type=int, default=10, help="\nNumber of epochs")
 	parser.add_argument('--batch', type=int, default=32, help="\nNumber in a batch")

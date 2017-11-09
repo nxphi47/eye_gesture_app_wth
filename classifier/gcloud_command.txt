@@ -153,26 +153,36 @@ python3 trainer/train.py --epoch 30 --batch 32 \
         --eval_dirs ../datasets/all5_augment_015/all5_augment_015_test.npz \
         --job-dir models/all5_bn_densenet_augment_1 \
 
-# normlal
-python3 trainer/train.py --epoch 10 --batch 64 \
+# normla
+python3 trainer/train.py --epoch 15 --batch 64 \
 		--classifier cnn_rnn \
         --eval-frequency 1 \
         --checkpoint_epochs 1 \
         --config_file trainer/resnet_config.json \
         --train_dirs ../datasets/all5_augment_015/all5_augment_015_train.npz \
         --eval_dirs ../datasets/all5_augment_015/all5_augment_015_test.npz \
-        --job-dir models/all5_bn_cnn_rnn_augment_1 \
+        --job-dir models/all5_bn_cnn_rnn_augment_2 \
 
 
 # test on mac cnn_rnn
 python3 trainer/train.py --epoch 1 --batch 32 \
-		--classifier densenet \
+		--classifier cnn_rnn_raw \
         --eval-frequency 1 \
         --checkpoint_epochs 1 \
         --config_file trainer/densenet_config.json \
         --train_dirs ../datasets/phi/test_phi.npz \
         --eval_dirs ../datasets/phi/test_phi.npz \
         --job-dir models/test_cnn_rnn \
+
+python3 trainer/train.py --epoch 2 --batch 32 \
+		--classifier cnn_rnn_raw \
+        --eval-frequency 1 \
+        --checkpoint_epochs 1 \
+        --config_file trainer/densenet_config.json \
+        --train_dirs ../datasets/phi/test_phi.npz \
+        --eval_dirs ../datasets/phi/test_phi.npz \
+        --job-dir models/test_cnn_rnn_raw \
+
 
 
 ```

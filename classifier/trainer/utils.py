@@ -1,23 +1,24 @@
 #!/usr/bin/env python
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
+
 # from keras.layers.merge import Concatenate, Add, Dot, Multiply
 import glob
 import os
-from PIL import Image
-import numpy as np
+import zipfile
+
 import keras
+import numpy as np
+import tensorflow as tf
+from PIL import Image
 from keras import backend as K
-from keras.layers import Input, Activation, Conv2D, Dense, Dropout, \
-	LSTM, Bidirectional, TimeDistributed, MaxPooling2D, BatchNormalization, AveragePooling2D, Flatten
-from keras.models import Model, Sequential
 from sklearn.metrics import classification_report, confusion_matrix
+from tensorflow.python.lib.io import file_io
 from tensorflow.python.saved_model import builder as saved_model_builder
 from tensorflow.python.saved_model import tag_constants, signature_constants
 from tensorflow.python.saved_model.signature_def_utils_impl import predict_signature_def
-import zipfile
-from gzip import GzipFile
-from tensorflow.python.lib.io import file_io
+
+LABEL_SET = ['left', 'right', 'up', 'down', 'center', 'double_blink']
 
 def normalize_image(img):
 	# return (img - 127.5) / 127.5
@@ -44,6 +45,25 @@ def to_savedmodel(model, export_path):
 				signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: signature}
 		)
 		builder.save()
+
+def session_to_savedmodel(session, inputs, outputs, export_path):
+	"""Convert the Keras HDF5 model into TensorFlow SavedModel."""
+	builder = saved_model_builder.SavedModelBuilder(export_path)
+
+	signature = predict_signature_def(inputs={'inputs': inputs},
+									  outputs={'outputs': outputs})
+
+	builder.add_meta_graph_and_variables(
+		sess=session,
+		tags=[tag_constants.SERVING],
+		signature_def_map={
+			signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: signature}
+	)
+	builder.save()
+
+def session_from_savedmodel(session, export_dir):
+	tf.saved_model.loader.load(session, [tag_constants.SERVING], export_dir)
+
 
 def compare_url(a, b):
 	ia = int(a.split('/')[-1].replace('img_', '').split('.')[0])

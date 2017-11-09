@@ -43,9 +43,12 @@ class ClassiferTfModel():
 		self.model = None
 		self.feed_dict = None
 		self.X = None
+		self.true_val = None
 		self.X_val = None
 		self.y = None
 		self.y_val = None
+		if self.label_set is None:
+			self.label_set = utils.LABEL_SET
 		self.eye = np.eye(len(self.label_set))
 
 	def load_config(self):
@@ -61,7 +64,6 @@ class ClassiferTfModel():
 		# FIXME: only accept 1 single file at this momment
 		if isinstance(train_files, (list, tuple)):
 			train_files = train_files[0]
-
 		X, y = utils.load_npz(train_files)
 		self.X, self.X_val, self.y, self.y_val = train_test_split(X, y, test_size=split, random_state=42, stratify=y)
 
@@ -190,7 +192,9 @@ class ClassiferKerasModel(ClassiferTfModel):
 		self.print_f('Save model to {}'.format(self.job_dir))
 		utils.to_savedmodel(self.model, os.path.join(self.job_dir, 'export'))
 
-	def fit(self, train_files, test_files=None, batch_size=32, epochs=10, validation_split=0.1, callbacks=None,
+	def fit(self, train_files,
+			test_files=None,
+			batch_size=32, epochs=10, validation_split=0.1, callbacks=None,
 			**kwargs):
 		self.process_training_data(train_files, split=validation_split)
 

@@ -247,7 +247,7 @@ class DenseNet_RNN_classifier(base_model.ClassiferKerasModel):
 				 sequence_length=15,
 				 input_dim=64,
 				 label_set=None,
-				 batch_norm=False
+				 batch_norm=True
 				 ):
 		super().__init__(config_file, job_dir, checkpoint_path, print_f, sequence_length, input_dim, label_set, batch_norm)
 
