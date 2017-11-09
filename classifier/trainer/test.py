@@ -28,33 +28,32 @@ def dispatch(eval_files, model_file):
 	# print('{}'.format(y.shape))
 
 
-	K.set_learning_phase(1)
+	# K.set_learning_phase(1)
 	# eye_model = load_model(model_file, compile=False)
 
 	# eye_model = cnn_rnn_model_raw.CNN_RNN_Sequential_raw()
 	# eye_model.load_model_from_savedmodel(model_file)
 	with tf.Session(graph=tf.Graph()) as sess:
 		tf.saved_model.loader.load(sess, [tag_constants.SERVING], model_file)
-		ops = sess.graph.get_operations()
-		ops_name = [o.name for o in ops]
-		outputs = [n for n in ops_name if 'outputs' in n]
-		inputs = [n for n in ops_name if 'inputs' in n]
-		training = [n for n in ops_name if 'training' in n]
-		predictions = [n for n in ops_name if 'predictions' in n]
-		print(outputs)
-		print(inputs)
-		print(training)
-		print(predictions)
+		# ops = sess.graph.get_operations()
+		# ops_name = [o.name for o in ops]
+		# outputs = [n for n in ops_name if 'outputs' in n]
+		# inputs = [n for n in ops_name if 'inputs' in n]
+		# training = [n for n in ops_name if 'training' in n]
+		# predictions = [n for n in ops_name if 'predictions' in n]
+		# print(outputs)
+		# print(inputs)
+		# print(training)
+		# print(predictions)
 		inputs = sess.graph.get_tensor_by_name('inputs:0')
-
 		outputs = sess.graph.get_tensor_by_name('outputs:0')
 		training = sess.graph.get_tensor_by_name('training:0')
 		predictions = sess.graph.get_tensor_by_name('predictions:0')
-		print()
-		print(outputs)
-		print(inputs)
-		print(training)
-		print(predictions)
+		# print()
+		# print(outputs)
+		# print(inputs)
+		# print(training)
+		# print(predictions)
 		# x = np.random.randint(0, 255, size=[2, 15, 64, 64, 3])
 		# eye = np.eye(6)
 		# y = np.array([eye[i] for i in np.random.randint(0, 255, size=[2,])])
@@ -84,8 +83,8 @@ def dispatch(eval_files, model_file):
 		pred_val = sess.run(predictions, feed_dict={inputs: X, training: False})
 		true_val = np.argmax(y, axis=1)
 		utils.report(true_val, pred_val, LABEL_SET)
-
 		print('Time: {}'.format(time.time() - s))
+
 
 	# eye_model.end_train()
 
