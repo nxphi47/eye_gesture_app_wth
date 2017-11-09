@@ -438,6 +438,7 @@ class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 		self.true_val = np.array(np.argmax(labels, axis=1))
 		utils.report(self.true_val, pred_val, self.label_set, epoch=sum_step, print_fn=self.print_f)
 		self.tfboard_test_writer.add_summary(summaries, sum_step)
+		self.print_f('--- Finish eval ----')
 
 	def fit(self, train_files,
 			test_files=None,
