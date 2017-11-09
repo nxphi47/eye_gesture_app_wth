@@ -242,7 +242,8 @@ def bi_lstm(training,
 def cnn_rnn_sequential(**kwargs):
 	input_shape = [None, 15, 64, 64, 3]
 	inputs = tf.placeholder(tf.float32, shape=input_shape, name='inputs')
-	training = tf.placeholder(tf.bool, name='training')
+	training = tf.placeholder_with_default(False, shape=(), name='training')
+	learning_rate = tf.placeholder_with_default(kwargs.get('learning_rate', 0.001), shape=(), name='learning_rate')
 	labels = tf.placeholder(tf.float32, shape=[None, 6], name='labels')
 
 	num_hidden = 32
@@ -281,7 +282,7 @@ def cnn_rnn_sequential(**kwargs):
 
 	loss = tf.reduce_mean(softmax_logits)
 	neurons_scalar(loss, 'loss_scalar')
-	optimizer = tf.train.AdamOptimizer(learning_rate=kwargs.get('learning_rate', 0.001))
+	optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 
 	update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
 	with tf.control_dependencies(update_ops):
@@ -297,6 +298,7 @@ def cnn_rnn_sequential(**kwargs):
 		'training': training,
 		'labels': labels,
 		'outputs': outputs,
+		'learning_rate': learning_rate,
 		'predictions': predictions,
 		'accuracy': accuracy,
 		'loss': loss,
@@ -308,13 +310,20 @@ def cnn_rnn_sequential(**kwargs):
 
 class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 	def __init__(self, config_file=None, job_dir=None, checkpoint_path=None, print_f=print, sequence_length=15, input_dim=64,
-				 label_set=None, batch_norm=False):
+				 label_set=None, batch_norm=False, **kwargs):
 		super().__init__(config_file, job_dir, checkpoint_path, print_f, sequence_length, input_dim, label_set,
 						 batch_norm)
 		self.model_ops = None
 		self.session = None
 		self.tfboard_train_writer = None
 		self.tfboard_test_writer = None
+
+		self.learning_rate = kwargs.get('learning_rate', 0.001)
+		self.learning_rate_decay = kwargs.get('learning_rate_decay', 0.5)
+		self.learning_rate_tolerance = kwargs.get('learning_rate_tolerance', 5)
+		self.eval_loss_max = 10000
+		self.eval_loss_max_count = self.learning_rate_tolerance
+
 
 	def load_model_from_savedmodel(self, export_path):
 		self.compile()
@@ -368,7 +377,7 @@ class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 		assert self.model_ops is not None
 		assert self.session is not None
 
-		return self.session.run([self.model_ops['outputs'], self.model_ops['summaries']], feed_dict={
+		return self.session.run([self.model_ops['outputs'], self.model_ops['loss'], self.model_ops['summaries']], feed_dict={
 			self.model_ops['inputs']: data,
 			self.model_ops['labels']: labels,
 			self.model_ops['training']: False
@@ -401,7 +410,7 @@ class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 	def on_epoch_end(self, epoch, **kwargs):
 		assert self.session is not None
 		if epoch > 0 and (epoch % kwargs.get('eval_freq', 4) == 0 or epoch == kwargs.get('epochs', 15)):
-			preds, summaries = self.eval(self.X_val)
+			# preds, loss, summaries = self.eval(self.X_val)
 			pred_val = np.argmax(preds, axis=1)
 
 			if self.true_val is None:
@@ -421,7 +430,6 @@ class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 		self.tfboard_train_writer.add_summary(kwargs['train_summaries'], sum_step)
 
 		# if epoch > 0 and (epoch % kwargs.get('eval_freq', 4) == 0 or epoch == kwargs.get('epochs', 15)):
-
 		self.test_size = 500
 		if len(self.X_val) < self.test_size:
 			self.test_size = len(self.X_val)
@@ -431,13 +439,28 @@ class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 		data = self.X_val[self.test_idx]
 		labels = self.y_val[self.test_idx]
 
-		preds, summaries = self.eval(data, labels)
+		preds, loss, summaries = self.eval(data, labels)
+		# print('{} pred shape'.format(preds.shape))
+		# print('{} label shape'.format(labels.shape))
 		pred_val = np.argmax(preds, axis=1)
+		self.true_val = np.argmax(labels, axis=1)
 
 		# if self.true_val is None:
-		self.true_val = np.array(np.argmax(labels, axis=1))
-		utils.report(self.true_val, pred_val, self.label_set, epoch=sum_step, print_fn=self.print_f)
+		utils.report(self.true_val, pred_val, self.label_set, epoch=sum_step, print_fn=self.print_f, loss=loss)
 		self.tfboard_test_writer.add_summary(summaries, sum_step)
+
+		# change learning rate
+		if loss <= self.eval_loss_max:
+			self.eval_loss_max = loss
+			self.eval_loss_max_count = self.learning_rate_tolerance
+		else:
+			self.eval_loss_max_count -= 1
+
+		if self.eval_loss_max_count == 0:
+			self.eval_loss_max_count = self.learning_rate_tolerance
+			self.learning_rate *= self.learning_rate_decay
+			self.print_f('### update learning rate to {}'.format(self.learning_rate))
+
 		self.print_f('--- Finish eval ----')
 
 	def fit(self, train_files,
@@ -469,7 +492,8 @@ class CNN_RNN_Sequential_raw(base_model.ClassiferTfModel):
 					feed_dict={
 						self.model_ops['inputs']: inputs,
 						self.model_ops['labels']: labels,
-						self.model_ops['training']: True
+						self.model_ops['training']: True,
+						self.model_ops['learning_rate']: self.learning_rate
 					})
 				if s % eval_per_epoch == 0:
 					self.print_f('--E({}) -- step ({}) -- loss ({}) -- acc ({})'.format(e, s, loss, acc))

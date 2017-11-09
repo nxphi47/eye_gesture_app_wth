@@ -223,10 +223,12 @@ def after_train(model, model_name, job_dir, print_fn=print):
 	to_savedmodel(model, os.path.join(job_dir, 'export'))
 
 
-def report(true_val, pred_val, label_set, epoch=0, print_fn=print, digits=4):
+def report(true_val, pred_val, label_set, epoch=0, print_fn=print, digits=4, **kwargs):
 	report = classification_report(true_val, pred_val, target_names=label_set, digits=digits)
 	matrix = confusion_matrix(true_val, pred_val)
 	print_fn("----- Epoch:{} -----".format(epoch))
+	if 'loss' in kwargs:
+		print_fn('--Loss: {}'.format(kwargs['loss']))
 	print_fn(report)
 	print_fn(matrix)
 
