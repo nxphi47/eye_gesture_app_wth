@@ -3,11 +3,9 @@ from __future__ import print_function
 import argparse
 import tensorflow as tf
 
-import keras.backend as K
 import numpy as np
 from flask import Flask, jsonify
 from flask_cors import CORS
-from keras.models import load_model
 from tensorflow.python.saved_model import tag_constants, signature_constants
 
 import time
@@ -70,14 +68,13 @@ class TfModel():
 		self.export_path = export_path
 		self.time = time.time()
 		print('Loading model')
-		self.session = tf.Session(graph=tf.Graph())
+		self.session = tf.Session()
 		tf.saved_model.loader.load(self.session, [tag_constants.SERVING], self.export_path)
 		self.inputs = self.session.graph.get_tensor_by_name('inputs:0')
 		self.outputs = self.session.graph.get_tensor_by_name('outputs:0')
 		self.training = self.session.graph.get_tensor_by_name('training:0')
 		self.predictions = self.session.graph.get_tensor_by_name('predictions:0')
-
-
+		print('loading time: {}'.format(time.time() - self.time))
 
 
 def normalize_image(img):
@@ -107,8 +104,9 @@ def inference():
 		if model is not None:
 			try:
 				print("start prediction")
+				t = time.time()
 				predicted = model.predict(np.array([data]))
-				print("end of prediction")
+				print("end of prediction, time {}".format(time.time() - t))
 				# label = np.argmax(label, axis=1)
 				prop = predicted[0]
 				label = LABEL_SET[np.argmax(prop)]
@@ -204,7 +202,7 @@ def load_cnn_model(model_name):
 	model.load_model(model_name)
 
 	print("Finish load model with learning phase 0")
-
+	# exit()
 	camera_config = {
 		'duration': 15,
 		'framerate': FRAMERATE
